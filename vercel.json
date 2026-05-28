@@ -1,0 +1,5 @@
+{
+  "buildCommand": "node ops_dashboard.js",
+  "outputDirectory": "public",
+  "framework": null
+}
