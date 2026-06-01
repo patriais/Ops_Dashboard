@@ -479,9 +479,9 @@ function loadDash(id){
   var d=DASH[id];if(!d)return;
   var title='';NAV.forEach(function(g){g.items.forEach(function(i){if(i.id===id)title=i.name;});});
   document.getElementById('dashTitle').textContent=title;
-  var tabHtml=TABS.map(function(t){return '<button class="tab'+(t.id==='reclamaciones'?' act':'')+'" onclick="switchTab(\''+t.id+'\')">'+t.label+'</button>';}).join('');
+  var tabHtml=TABS.map(function(t){return '<button class="tab'+(t.id==='reclamaciones'?' act':'')+'\" data-tabid=\"'+t.id+'\" onclick=\"switchTab(this.dataset.tabid)\">'+t.label+'</button>';}).join('');
   var recTab=TABS[0];
-  var stHtml=recTab.subtabs.map(function(s){return '<button class="subtab'+(s.id==='all'?' act':'')+'" onclick="switchSubtab(\''+s.id+'\')">'+s.label+'</button>';}).join('');
+  var stHtml=recTab.subtabs.map(function(s){return '<button class="subtab'+(s.id==='all'?' act':'')+'\" data-subid=\"'+s.id+'\" onclick=\"switchSubtab(this.dataset.subid)\">'+s.label+'</button>';}).join('');
   document.getElementById('content').innerHTML=
     '<div class="tbar">'+tabHtml+'</div>'+
     '<div class="stbar" id="stbar">'+stHtml+'</div>'+
@@ -493,7 +493,7 @@ function loadDash(id){
 
 function switchTab(tabId){
   curTab=tabId;curSubtab='all';
-  document.querySelectorAll('.tab').forEach(function(b){b.classList.toggle('act',b.getAttribute('onclick')==="switchTab('"+tabId+"')");});
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.toggle('act',b.dataset.tabid===tabId);});
   var stbar=document.getElementById('stbar');
   if(stbar){
     stbar.style.display=tabId==='reclamaciones'?'':'none';
@@ -504,7 +504,7 @@ function switchTab(tabId){
 
 function switchSubtab(subId){
   curSubtab=subId;
-  document.querySelectorAll('.subtab').forEach(function(b){b.classList.toggle('act',b.getAttribute('onclick')==="switchSubtab('"+subId+"')");});
+  document.querySelectorAll('.subtab').forEach(function(b){b.classList.toggle('act',b.dataset.subid===subId);});
   renderTab();
 }
 
