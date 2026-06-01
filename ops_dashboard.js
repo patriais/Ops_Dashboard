@@ -45,6 +45,7 @@ const DASHBOARDS = [
     stageMap: {
       '5422927042': 'Sin asignar',
       '5424979163': 'Asignado',
+      '5444889823': 'En gestión',
       '5422927043': 'Pendiente de resolución del organismo',
       '5422927044': 'Requerimiento adicional',
       '5424886986': 'Resolución',
@@ -54,6 +55,7 @@ const DASHBOARDS = [
     stageEntryProps: {
       '5422927042': 'hs_date_entered_5422927042',
       '5424979163': 'hs_date_entered_5424979163',
+      '5444889823': 'hs_date_entered_5444889823',
       '5422927043': 'hs_date_entered_5422927043',
       '5422927044': 'hs_date_entered_5422927044',
       '5424886986': 'hs_date_entered_5424886986',
@@ -560,7 +562,10 @@ async function main() {
   const html = buildHtml(dashData, now);
   if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
   fs.writeFileSync(OUTPUT, html, 'utf8');
+  const LOCAL = path.join(__dirname, 'ops_dashboard.html');
+  fs.writeFileSync(LOCAL, html, 'utf8');
   console.log(`Dashboard guardado: ${OUTPUT}`);
+  console.log(`Copia local:        ${LOCAL}`);
 
   // Open in browser (only locally)
   if (!process.env.VERCEL) {
@@ -570,4 +575,25 @@ async function main() {
   console.log('Listo.\n');
 }
 
-main().catch(e => { console.error('Error:', e); process.exit(1); });
+// CLI: node ops_dashboard.js
+if (require.main === module) {
+  main().catch(e => { console.error('Error:', e); process.exit(1); });
+}
+
+// Serverless handler (Vercel)
+module.exports = async (req, res) => {
+  try {
+    const dashData = {};
+    for (const cfg of DASHBOARDS) {
+      dashData[cfg.id] = await processDashboard(cfg);
+    }
+    const now = new Date().toLocaleString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const html = buildHtml(dashData, now);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.end(html);
+  } catch (e) {
+    res.statusCode = 500;
+    res.end(`<pre>Error: ${e.message}\n${e.stack}</pre>`);
+  }
+};
