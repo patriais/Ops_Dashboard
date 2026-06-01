@@ -409,7 +409,15 @@ tr:hover td{background:#f7fafc}
 .emp{text-align:center;padding:28px;color:#a0aec0;font-size:13px}
 .ac{display:inline-flex;align-items:center;gap:5px;background:#fff5f5;border:1.5px solid #fc8181;color:#c53030;border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
 .ac.on{background:#c53030;color:#fff;border-color:#c53030}
-.ac:hover{opacity:.85}`;
+.ac:hover{opacity:.85}
+.tbar{display:flex;gap:0;flex-wrap:wrap;border-bottom:2px solid #e2e8f0;margin-bottom:16px}
+.tab{background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;padding:10px 20px;font-size:13px;font-weight:600;color:#718096;cursor:pointer;transition:color .15s;white-space:nowrap}
+.tab:hover{color:#2d3748}
+.tab.act{color:#3182ce;border-bottom-color:#3182ce}
+.stbar{display:flex;gap:6px;flex-wrap:wrap;padding:0 0 12px;margin-bottom:8px}
+.subtab{background:#fff;border:1.5px solid #e2e8f0;padding:4px 14px;font-size:11px;font-weight:600;color:#718096;cursor:pointer;border-radius:20px;transition:all .15s}
+.subtab:hover{background:#ebf8ff;border-color:#bee3f8;color:#2b6cb0}
+.subtab.act{background:#3182ce;color:#fff;border-color:#3182ce}`;
 
   const sidebarHtml = Object.entries(categories).map(([cat, items]) => `
     <div class="sbs">
@@ -428,104 +436,156 @@ const NAV=${navJ};
 const DASH=${dashMapJ};
 const CL=['Resolución','Archivado / desistido'];
 const C=['#3182ce','#805ad5','#e53e3e','#d69e2e','#38a169','#dd6b20','#0987a0','#97266d','#553c9a','#2f855a','#b7791f','#2c7a7b'];
-let curCharts=[],onlyAlert=false,curId='';
+const TABS=[
+  {id:'reclamaciones',label:'Reclamaciones',types:['Reclamación no judicial','Requerimiento judicial','Consumo'],
+   subtabs:[{id:'all',label:'Todas',types:null},{id:'judicial',label:'Proceso judicial',types:['Requerimiento judicial']},{id:'consumo',label:'Consumo',types:['Consumo']},{id:'no_judicial',label:'Proceso no judicial',types:['Reclamación no judicial']}]},
+  {id:'gdpr',label:'GDPR',types:['GDPR'],subtabs:null},
+  {id:'otros',label:'Otros',types:['Otros','Desistimiento','Modificación contractual'],subtabs:null},
+  {id:'info',label:'Solicitud de información',types:['Solicitud de información'],subtabs:null},
+  {id:'sin_cat',label:'Sin categorizar',types:['Sin categorizar'],subtabs:null}
+];
+let curCharts=[],onlyAlert=false,curId='',curTab='reclamaciones',curSubtab='all',curTabRows=[];
 
-function mkD(id,d){
-  const c=new Chart(document.getElementById(id),{type:'doughnut',data:{labels:d.map(x=>x.label),datasets:[{data:d.map(x=>x.value),backgroundColor:C,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:7,boxWidth:10}}}}});
-  curCharts.push(c);
+function mkD(id,d){var el=document.getElementById(id);if(!el)return;var c=new Chart(el,{type:'doughnut',data:{labels:d.map(function(x){return x.label;}),datasets:[{data:d.map(function(x){return x.value;}),backgroundColor:C,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:7,boxWidth:10}}}}});curCharts.push(c);}
+function mkB(id,d){var el=document.getElementById(id);if(!el)return;var c=new Chart(el,{type:'bar',data:{labels:d.map(function(x){return x.label;}),datasets:[{data:d.map(function(x){return x.value;}),backgroundColor:C,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'#edf2f7'},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});curCharts.push(c);}
+function chJ(rows,key){var m={};rows.forEach(function(r){if(r[key])m[r[key]]=(m[r[key]]||0)+1;});return Object.entries(m).sort(function(a,b){return b[1]-a[1];}).map(function(e){return{label:e[0],value:e[1]};});}
+function uniq(key){return[...new Set(curTabRows.map(function(r){return r[key];}))].filter(Boolean).sort();}
+function addOpts(sid,vals){var el=document.getElementById(sid);if(!el)return;vals.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);});}
+
+function getTabRows(all,tabId,subId){
+  var tab=TABS.find(function(t){return t.id===tabId;});
+  if(!tab)return all;
+  var sub=tab.subtabs&&subId!=='all'?tab.subtabs.find(function(s){return s.id===subId;}):null;
+  var types=sub?sub.types:tab.types;
+  return all.filter(function(r){return types&&types.includes(r.ty);});
 }
-function mkB(id,d){
-  const c=new Chart(document.getElementById(id),{type:'bar',data:{labels:d.map(x=>x.label),datasets:[{data:d.map(x=>x.value),backgroundColor:C,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'#edf2f7'},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
-  curCharts.push(c);
+
+function calcKpis(rows){
+  var rd=rows.map(function(r){var v=parseFloat(r.rt);return isNaN(v)?null:v;}).filter(function(v){return v!==null;});
+  var sum=rd.reduce(function(a,b){return a+b;},0);
+  return{
+    total:rows.length,
+    open:rows.filter(function(r){return !CL.includes(r.st);}).length,
+    closed:rows.filter(function(r){return CL.includes(r.st);}).length,
+    unassigned:rows.filter(function(r){return r.o==='Sin asignar';}).length,
+    noType:rows.filter(function(r){return r.ty==='Sin categorizar';}).length,
+    avgR:rd.length?(Math.round(sum/rd.length*10)/10)+' d':'-'
+  };
 }
 
 function loadDash(id){
-  curCharts.forEach(c=>c.destroy()); curCharts=[]; onlyAlert=false; curId=id;
-  document.querySelectorAll('.sbn').forEach(el=>el.classList.remove('act'));
-  const nav=document.getElementById('nav-'+id); if(nav) nav.classList.add('act');
-  const d=DASH[id]; if(!d) return;
-  let title=''; NAV.forEach(g=>g.items.forEach(i=>{if(i.id===id)title=i.name}));
+  curCharts.forEach(function(c){c.destroy();});curCharts=[];onlyAlert=false;curId=id;curTab='reclamaciones';curSubtab='all';
+  document.querySelectorAll('.sbn').forEach(function(el){el.classList.remove('act');});
+  var nav=document.getElementById('nav-'+id);if(nav)nav.classList.add('act');
+  var d=DASH[id];if(!d)return;
+  var title='';NAV.forEach(function(g){g.items.forEach(function(i){if(i.id===id)title=i.name;});});
   document.getElementById('dashTitle').textContent=title;
+  var tabHtml=TABS.map(function(t){return '<button class="tab'+(t.id==='reclamaciones'?' act':'')+'" onclick="switchTab(\''+t.id+'\')">'+t.label+'</button>';}).join('');
+  var recTab=TABS[0];
+  var stHtml=recTab.subtabs.map(function(s){return '<button class="subtab'+(s.id==='all'?' act':'')+'" onclick="switchSubtab(\''+s.id+'\')">'+s.label+'</button>';}).join('');
+  document.getElementById('content').innerHTML=
+    '<div class="tbar">'+tabHtml+'</div>'+
+    '<div class="stbar" id="stbar">'+stHtml+'</div>'+
+    '<div id="kpiArea"></div>'+
+    '<div id="chartArea"></div>'+
+    '<div id="tableArea"></div>';
+  renderTab();
+}
 
-  document.getElementById('content').innerHTML=\`
-    <div class="kpis">
-      <div class="kpi k0"><div class="l">Total tickets</div><div class="v">\${d.total}</div></div>
-      <div class="kpi k1"><div class="l">Abiertos</div><div class="v">\${d.open}</div></div>
-      <div class="kpi k2"><div class="l">Cerrados</div><div class="v">\${d.closed}</div></div>
-      <div class="kpi k3"><div class="l">Sin asignar</div><div class="v">\${d.unassigned}</div></div>
-      <div class="kpi k4"><div class="l">Sin categorizar</div><div class="v">\${d.noType}</div></div>
-      <div class="kpi k5"><div class="l">T. medio resolucion</div><div class="v">\${d.avgR}</div></div>
-    </div>
-    <div class="charts">
-      <div class="card"><h2>Por tipo de solicitud</h2><div class="cw"><canvas id="cT"></canvas></div></div>
-      <div class="card"><h2>Por estado</h2><div class="cw"><canvas id="cS"></canvas></div></div>
-      <div class="card"><h2>Por responsable</h2><div class="cw"><canvas id="cO"></canvas></div></div>
-      <div class="card"><h2>Por escuela</h2><div class="cw"><canvas id="cSc"></canvas></div></div>
-    </div>
-    <div class="tc">
-      <h2>Todos los tickets <em id="cnt"></em></h2>
-      <div class="fi">
-        <div><label>Buscar</label><input id="fSe" type="text" placeholder="Asunto..." oninput="rnd()"></div>
-        <div><label>Tipo solicitud</label><select id="fT" onchange="rnd()"><option value="">Todos</option></select></div>
-        <div><label>Estado</label><select id="fSt" onchange="rnd()"><option value="">Todos</option></select></div>
-        <div><label>Responsable</label><select id="fO" onchange="rnd()"><option value="">Todos</option></select></div>
-        <div><label>Escuela</label><select id="fSc" onchange="rnd()"><option value="">Todas</option></select></div>
-        <div><button class="ac" id="btnAl" onclick="toggleAl()">⚠️ Solo alertas</button></div>
-      </div>
-      <table>
-        <thead><tr><th>Loan ID</th><th>Escuela</th><th>Asunto</th><th>Tipo solicitud</th><th>Estado</th><th>Responsable</th><th>Fecha</th><th>T. resolucion</th></tr></thead>
-        <tbody id="tb"></tbody>
-      </table>
-    </div>\`;
+function switchTab(tabId){
+  curTab=tabId;curSubtab='all';
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.toggle('act',b.getAttribute('onclick')==="switchTab('"+tabId+"')");});
+  var stbar=document.getElementById('stbar');
+  if(stbar){
+    stbar.style.display=tabId==='reclamaciones'?'':'none';
+    if(tabId==='reclamaciones'){document.querySelectorAll('.subtab').forEach(function(b,i){b.classList.toggle('act',i===0);});}
+  }
+  renderTab();
+}
 
-  mkD('cT',d.tJ); mkD('cS',d.sJ); mkB('cO',d.oJ); mkD('cSc',d.scJ);
+function switchSubtab(subId){
+  curSubtab=subId;
+  document.querySelectorAll('.subtab').forEach(function(b){b.classList.toggle('act',b.getAttribute('onclick')==="switchSubtab('"+subId+"')");});
+  renderTab();
+}
 
-  function addOpts(selId,vals){vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;document.getElementById(selId).appendChild(o)})}
-  function uniq(k){return[...new Set(d.rJ.map(r=>r[k]))].filter(Boolean).sort()}
-  addOpts('fT',  d.typeOptions);
-  addOpts('fSt', d.stageOptions);
-  addOpts('fO',  uniq('o'));
-  addOpts('fSc', uniq('sc'));
+function renderTab(){
+  curCharts.forEach(function(c){c.destroy();});curCharts=[];onlyAlert=false;
+  var d=DASH[curId];if(!d)return;
+  curTabRows=getTabRows(d.rJ,curTab,curSubtab);
+  var k=calcKpis(curTabRows);
+  document.getElementById('kpiArea').innerHTML=
+    '<div class="kpis">'+
+    '<div class="kpi k0"><div class="l">Total tickets</div><div class="v">'+k.total+'</div></div>'+
+    '<div class="kpi k1"><div class="l">Abiertos</div><div class="v">'+k.open+'</div></div>'+
+    '<div class="kpi k2"><div class="l">Cerrados</div><div class="v">'+k.closed+'</div></div>'+
+    '<div class="kpi k3"><div class="l">Sin asignar</div><div class="v">'+k.unassigned+'</div></div>'+
+    '<div class="kpi k4"><div class="l">Sin categorizar</div><div class="v">'+k.noType+'</div></div>'+
+    '<div class="kpi k5"><div class="l">T. medio resolucion</div><div class="v">'+k.avgR+'</div></div>'+
+    '</div>';
+  document.getElementById('chartArea').innerHTML=
+    '<div class="charts">'+
+    '<div class="card"><h2>Por tipo de solicitud</h2><div class="cw"><canvas id="cT"></canvas></div></div>'+
+    '<div class="card"><h2>Por estado</h2><div class="cw"><canvas id="cS"></canvas></div></div>'+
+    '<div class="card"><h2>Por responsable</h2><div class="cw"><canvas id="cO"></canvas></div></div>'+
+    '<div class="card"><h2>Por escuela</h2><div class="cw"><canvas id="cSc"></canvas></div></div>'+
+    '</div>';
+  mkD('cT',chJ(curTabRows,'ty'));
+  mkD('cS',chJ(curTabRows,'st'));
+  mkB('cO',chJ(curTabRows,'o'));
+  mkD('cSc',chJ(curTabRows,'sc'));
+  document.getElementById('tableArea').innerHTML=
+    '<div class="tc">'+
+    '<h2>Todos los tickets <em id="cnt"></em></h2>'+
+    '<div class="fi">'+
+    '<div><label>Buscar</label><input id="fSe" type="text" placeholder="Asunto..." oninput="rnd()"></div>'+
+    '<div><label>Tipo solicitud</label><select id="fT" onchange="rnd()"><option value="">Todos</option></select></div>'+
+    '<div><label>Estado</label><select id="fSt" onchange="rnd()"><option value="">Todos</option></select></div>'+
+    '<div><label>Responsable</label><select id="fO" onchange="rnd()"><option value="">Todos</option></select></div>'+
+    '<div><label>Escuela</label><select id="fSc" onchange="rnd()"><option value="">Todas</option></select></div>'+
+    '<div><button class="ac" id="btnAl" onclick="toggleAl()">⚠️ Solo alertas</button></div>'+
+    '</div>'+
+    '<table><thead><tr><th>Loan ID</th><th>Escuela</th><th>Asunto</th><th>Tipo solicitud</th><th>Estado</th><th>Responsable</th><th>Fecha</th><th>T. resolucion</th></tr></thead><tbody id="tb"></tbody></table>'+
+    '</div>';
+  addOpts('fT',uniq('ty'));
+  addOpts('fSt',d.stageOptions);
+  addOpts('fO',uniq('o'));
+  addOpts('fSc',uniq('sc'));
   rnd();
 }
 
-function toggleAl(){onlyAlert=!onlyAlert;document.getElementById('btnAl').classList.toggle('on',onlyAlert);rnd()}
+function toggleAl(){onlyAlert=!onlyAlert;var b=document.getElementById('btnAl');if(b)b.classList.toggle('on',onlyAlert);rnd();}
 
 function rnd(){
-  const d=DASH[curId]; if(!d) return;
-  const s=(document.getElementById('fSe')||{}).value||'';
-  const ft=(document.getElementById('fT')||{}).value||'';
-  const fs=(document.getElementById('fSt')||{}).value||'';
-  const fo=(document.getElementById('fO')||{}).value||'';
-  const fsc=(document.getElementById('fSc')||{}).value||'';
-  const f=d.rJ.filter(r=>
-    (!s||(r.s||'').toLowerCase().includes(s.toLowerCase()))&&
+  var s=(document.getElementById('fSe')||{}).value||'';
+  var ft=(document.getElementById('fT')||{}).value||'';
+  var fs=(document.getElementById('fSt')||{}).value||'';
+  var fo=(document.getElementById('fO')||{}).value||'';
+  var fsc=(document.getElementById('fSc')||{}).value||'';
+  var f=curTabRows.filter(function(r){
+    return(!s||(r.s||'').toLowerCase().includes(s.toLowerCase()))&&
     (!ft||r.ty===ft)&&(!fs||r.st===fs)&&(!fo||r.o===fo)&&(!fsc||r.sc===fsc)&&
-    (!onlyAlert||r.al)
-  );
-  const cnt=document.getElementById('cnt'); if(cnt) cnt.textContent=f.length+' resultado'+(f.length!==1?'s':'');
-  const tb=document.getElementById('tb'); if(!tb) return;
-  if(!f.length){tb.innerHTML='<tr><td colspan=8 class="emp">Sin resultados</td></tr>';return}
-  tb.innerHTML=f.map(r=>\`<tr style="\${r.al?'background:#fffbeb':''}">
-    <td style="font-family:monospace;font-size:11px;color:#4a5568">\${r.lid}</td>
-    <td><span class="b \${r.sc==='N/A'?'bn':'bs'}">\${r.sc}</span></td>
-    <td title="\${r.s}">\${r.al?'⚠️ ':''}\${r.s||'(sin asunto)'}</td>
-    <td><span class="b \${r.ty==='Sin categorizar'?'bn':'bt'}">\${r.ty}</span></td>
-    <td><span class="b \${CL.includes(r.st)?'bc':'bo'}">\${r.st}</span></td>
-    <td>\${r.o}</td>
-    <td>\${r.d}</td>
-    <td style="color:\${r.rt==='En curso'?'#3182ce':'#276749'};font-weight:600">\${r.rt}</td>
-  </tr>\`).join('');
+    (!onlyAlert||r.al);
+  });
+  var cnt=document.getElementById('cnt');if(cnt)cnt.textContent=f.length+' resultado'+(f.length!==1?'s':'');
+  var tb=document.getElementById('tb');if(!tb)return;
+  if(!f.length){tb.innerHTML='<tr><td colspan=8 class="emp">Sin resultados</td></tr>';return;}
+  tb.innerHTML=f.map(function(r){
+    return '<tr style="'+(r.al?'background:#fffbeb':'')+'">'
+      +'<td style="font-family:monospace;font-size:11px;color:#4a5568">'+r.lid+'</td>'
+      +'<td><span class="b '+(r.sc==='N/A'?'bn':'bs')+'">'+r.sc+'</span></td>'
+      +'<td title="'+r.s+'">'+(r.al?'⚠️ ':'')+(r.s||'(sin asunto)')+'</td>'
+      +'<td><span class="b '+(r.ty==='Sin categorizar'?'bn':'bt')+'">'+r.ty+'</span></td>'
+      +'<td><span class="b '+(CL.includes(r.st)?'bc':'bo')+'">'+r.st+'</span></td>'
+      +'<td>'+r.o+'</td>'
+      +'<td>'+r.d+'</td>'
+      +'<td style="color:'+(r.rt==='En curso'?'#3182ce':'#276749')+';font-weight:600">'+r.rt+'</td>'
+      +'</tr>';
+  }).join('');
 }
 
-function toggleSb(){
-  const sb=document.getElementById('sb');
-  sb.classList.toggle('col');
-}
-function toggleCat(el){
-  el.classList.toggle('open');
-  el.nextElementSibling.classList.toggle('closed');
-}
+function toggleSb(){document.getElementById('sb').classList.toggle('col');}
+function toggleCat(el){el.classList.toggle('open');el.nextElementSibling.classList.toggle('closed');}
 
 loadDash('${firstId}');`;
 
