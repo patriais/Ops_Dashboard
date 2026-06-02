@@ -2,3 +2,5 @@ node_modules/
 public/
 .env
 ops_dashboard.html
+
+.vercel
