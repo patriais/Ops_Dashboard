@@ -416,7 +416,25 @@ tr:hover td{background:#f9fafb}
 .stbar{display:flex;gap:6px;flex-wrap:wrap;padding:0 0 12px;margin-bottom:8px}
 .subtab{background:#fff;border:1px solid #e5e7eb;padding:4px 14px;font-size:11px;font-weight:500;color:#6b7280;cursor:pointer;border-radius:6px;transition:all .15s}
 .subtab:hover{background:#f0fdfa;border-color:#99f6e4;color:#0f766e}
-.subtab.act{background:#0d9488;color:#fff;border-color:#0d9488}`;
+.subtab.act{background:#0d9488;color:#fff;border-color:#0d9488}
+.card-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#9ca3af;margin-bottom:8px}
+.calc-in{flex:1;border:1px solid #e5e7eb;border-radius:6px;padding:7px 11px;font-size:13px;color:#374151;outline:none}
+.calc-in:focus{border-color:#0d9488;box-shadow:0 0 0 3px rgba(13,148,136,.08)}
+.calc-btn{background:#0d9488;color:#fff;border:none;border-radius:6px;padding:7px 20px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.calc-btn:hover{background:#0f766e}
+.brow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f3f4f6}
+.mrow{display:flex;justify-content:space-between;padding:4px 0}`;
+
+  const toolsHtml = `
+    <div class="sbs">
+      <div class="sbc open" onclick="toggleCat(this)"><span>Herramientas</span><span class="ar">&#9654;</span></div>
+      <div class="sbi">
+        <div class="sbn" id="nav-calc" onclick="loadCalc()">
+          <div class="sbic">AA</div>
+          <span class="sbnm">Calculadora AA</span>
+        </div>
+      </div>
+    </div>`;
 
   const sidebarHtml = Object.entries(categories).map(([cat, items]) => `
     <div class="sbs">
@@ -428,7 +446,7 @@ tr:hover td{background:#f9fafb}
           <span class="sbnm">${item.name}</span>
         </div>`).join('')}
       </div>
-    </div>`).join('');
+    </div>`).join('') + toolsHtml;
 
   const js = `
 const NAV=${navJ};
@@ -585,6 +603,93 @@ function rnd(){
 
 function toggleSb(){document.getElementById('sb').classList.toggle('col');}
 function toggleCat(el){el.classList.toggle('open');el.nextElementSibling.classList.toggle('closed');}
+
+function fmtEur(n){return n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+function mkBrow(lbl,val,main){
+  return '<div class="brow">'+
+    '<span style="font-size:12px;color:#374151">'+lbl+'</span>'+
+    '<span style="font-size:'+(main?'16':'13')+'px;font-weight:'+(main?'700':'500')+';color:'+(main?'#0d9488':'#6b7280')+'">'+fmtEur(val)+'</span>'+
+  '</div>';
+}
+function mkMeta(lbl,val){
+  return '<div class="mrow">'+
+    '<span style="font-size:11px;color:#6b7280">'+lbl+'</span>'+
+    '<span style="font-size:11px;font-weight:600;color:#374151">'+val+'</span>'+
+  '</div>';
+}
+
+function loadCalc(){
+  curCharts.forEach(function(c){c.destroy();});curCharts=[];
+  document.querySelectorAll('.sbn').forEach(function(el){el.classList.remove('act');});
+  var nav=document.getElementById('nav-calc');if(nav)nav.classList.add('act');
+  document.getElementById('dashTitle').textContent='Calculadora AA';
+  document.getElementById('content').innerHTML=
+    '<div style="max-width:560px">'+
+    '<div class="card" style="margin-bottom:16px">'+
+    '<h2 style="margin-bottom:6px">Amortización Anticipada Total</h2>'+
+    '<p style="font-size:12px;color:#9ca3af;margin-bottom:14px">Importe exacto que debe pagar el alumno hoy para cancelar el préstamo anticipadamente.</p>'+
+    '<div style="display:flex;gap:8px">'+
+    '<input id="calcIn" class="calc-in" type="text" placeholder="Loan ID...">'+
+    '<button id="calcBtn" class="calc-btn">Calcular</button>'+
+    '</div>'+
+    '</div>'+
+    '<div id="calcRes"></div>'+
+    '</div>';
+  var inp=document.getElementById('calcIn');
+  var btn=document.getElementById('calcBtn');
+  if(btn)btn.addEventListener('click',doCalc);
+  if(inp){inp.addEventListener('keydown',function(e){if(e.key==='Enter')doCalc();});inp.focus();}
+}
+
+function doCalc(){
+  var lid=(document.getElementById('calcIn')||{}).value||'';
+  lid=lid.trim();
+  if(!lid)return;
+  var res=document.getElementById('calcRes');
+  if(!res)return;
+  res.innerHTML='<div class="card" style="text-align:center;padding:32px;color:#9ca3af;font-size:13px">Calculando...</div>';
+  fetch('/api/calculate?loan_id='+encodeURIComponent(lid))
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.errors||data.error){
+        var msg=(data.errors&&data.errors[0])?data.errors[0].message:(data.error||'Error desconocido');
+        res.innerHTML='<div class="card" style="border-color:#fecaca;padding:16px"><p style="color:#be123c;font-size:13px;margin:0">'+msg+'</p></div>';
+        return;
+      }
+      var m=data.metadata_calculo;
+      var warn=data.warnings&&data.warnings.length
+        ?'<div style="background:#fffbeb;border:1px solid #fef08a;border-radius:6px;padding:10px 14px;margin-top:12px">'+
+          data.warnings.map(function(w){return '<p style="font-size:11px;color:#92400e;margin:2px 0">⚠️ '+w+'</p>';}).join('')+
+          '</div>'
+        :'';
+      res.innerHTML=
+        '<div class="card">'+
+          '<div style="text-align:center;padding:8px 0 20px">'+
+            '<div class="card-lbl">Total a cobrar hoy</div>'+
+            '<div style="font-size:44px;font-weight:700;color:#0d9488;line-height:1.1">'+fmtEur(data.importe_total_a_cobrar)+'</div>'+
+            '<div style="font-size:11px;color:#9ca3af;margin-top:6px">'+data.fecha_calculo+' &nbsp;·&nbsp; Loan ID: <b>'+data.loan_id+'</b></div>'+
+          '</div>'+
+          '<div style="border-top:1px solid #e5e7eb;padding-top:14px;margin-bottom:6px">'+
+            '<div class="card-lbl">Desglose</div>'+
+            mkBrow('Saldo bruto pendiente',data.breakdown.saldo_bruto_pendiente,true)+
+            mkBrow('Comisión Stripe ya pagada',data.breakdown.stripe_retenido,false)+
+            mkBrow('Intereses línea de crédito',data.breakdown.intereses_linea_pagados,false)+
+          '</div>'+
+          '<div style="border-top:1px solid #e5e7eb;padding-top:14px;margin-top:8px">'+
+            '<div class="card-lbl">Datos del cálculo</div>'+
+            mkMeta('TAE contractual',(m.TAE_contractual*100).toFixed(2)+'%')+
+            mkMeta('Cuota mensual',fmtEur(m.cuota_mensual))+
+            mkMeta('Cuotas pagadas / total',m.cuotas_pagadas+' / '+(m.cuotas_pagadas+m.cuotas_pendientes))+
+            mkMeta('Días desde desembolso',m.dias_desde_desembolso)+
+            mkMeta('Días desde última cuota',m.dias_desde_ultima_cuota)+
+          '</div>'+
+          warn+
+        '</div>';
+    })
+    .catch(function(e){
+      res.innerHTML='<div class="card" style="border-color:#fecaca;padding:16px"><p style="color:#be123c;font-size:13px;margin:0">Error de conexión: '+e.message+'</p></div>';
+    });
+}
 
 loadDash('${firstId}');`;
 
