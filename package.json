@@ -6,6 +6,7 @@
     "start": "node ops_dashboard.js"
   },
   "dependencies": {
+    "decimal.js": "^10.4.3",
     "pg": "^8.21.0"
   }
 }
