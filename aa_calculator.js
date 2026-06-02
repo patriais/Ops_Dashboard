@@ -117,7 +117,12 @@ function mapEstado(status) {
 async function fetchLoanData(loanId) {
   if (!process.env.DB_URL) throw new Error('DB_URL no configurado');
 
-  const db = new Client({ connectionString: process.env.DB_URL, ssl: { rejectUnauthorized: false } });
+  const db = new Client({
+    connectionString: process.env.DB_URL,
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 10000,   // 10 s máx para conectar
+    query_timeout:           25000,   // 25 s máx por query
+  });
   await db.connect();
 
   try {
@@ -159,15 +164,34 @@ async function fetchLoanData(loanId) {
     //   Las cuotas son siempre payin_type='periodic'.
     // ══════════════════════════════════════════════════════════════════════
     if (row.loan_type === 'installment_payments') {
-      if (!row.pap_selected_installments || !row.pap_installment_cost) {
-        const err = new Error(`PaP loan "${loanId}" sin datos de cuotas (pap_* nulos)`);
+      if (!row.pap_selected_installments) {
+        const err = new Error(`PaP loan "${loanId}" sin número de cuotas (pap_selected_installments nulo)`);
         err.statusCode = 422;
         throw err;
       }
-      tipo_prestamo    = 'PaP';
-      num_total_cuotas = parseInt(row.pap_selected_installments, 10);
+      tipo_prestamo      = 'PaP';
+      num_total_cuotas   = parseInt(row.pap_selected_installments, 10);
       importe_financiado = d(row.total_amount_financed);
-      coste_por_cuota    = d(row.pap_installment_cost);
+
+      // pap_installment_cost puede ser nulo en préstamos legacy: derivar de las cuotas reales
+      if (row.pap_installment_cost && parseFloat(row.pap_installment_cost) > 0) {
+        coste_por_cuota = d(row.pap_installment_cost);
+      } else {
+        // Fallback: C = cuota_pagada − P/N, tomada de la primera cuota periódica no cancelada
+        const firstPayinRes = await db.query(
+          `SELECT amount FROM payin_stats
+           WHERE loan_id = $1 AND payin_type = 'periodic' AND payin_status != 'cancelled'
+           ORDER BY theorical_date ASC LIMIT 1`,
+          [loanId]
+        );
+        if (firstPayinRes.rows.length === 0) {
+          const err = new Error(`PaP loan "${loanId}" sin cuotas periódicas para derivar coste`);
+          err.statusCode = 422;
+          throw err;
+        }
+        const cuota_ref = d(firstPayinRes.rows[0].amount);
+        coste_por_cuota = cuota_ref.minus(importe_financiado.div(num_total_cuotas));
+      }
 
       // Cuotas cobradas: sólo periódicas
       const paidRes = await db.query(
@@ -312,17 +336,30 @@ function calcularConDatos(data, cfg = {}) {
   //
   // Nota: con k=1 → saldo = P_ef (sólo se pagó la cuota t=0)  ✓
 
-  const factor_k = i_m.plus(1).pow(k - 1);
-  const saldo_tras_ultima_cuota = principal_efectivo.mul(factor_k)
-    .minus(cuota_mensual.mul(factor_k.minus(1)).div(i_m));
+  // Cuando C ≈ 0 el solver devuelve i_m ≈ 0, y la fórmula de la anualidad
+  // tendría 0/0.  En ese límite la fórmula degenera en amortización lineal:
+  //   saldo(k) = P − k·cuota
+  // Umbral: si i_m < 1e-9 (TAE < 0.001 %) usamos el modelo lineal.
+  const I_M_THRESHOLD = d('1e-9');
+  let saldo_tras_ultima_cuota;
+  if (i_m.abs().lessThan(I_M_THRESHOLD)) {
+    saldo_tras_ultima_cuota = P.minus(cuota_mensual.mul(k));
+  } else {
+    const factor_k = i_m.plus(1).pow(k - 1);
+    saldo_tras_ultima_cuota = principal_efectivo.mul(factor_k)
+      .minus(cuota_mensual.mul(factor_k.minus(1)).div(i_m));
+  }
 
   const fecha_ultima_cuota      = cuotas[k - 1].fecha_cobro;
   const dias_desde_ultima_cuota = daysDiff(fecha_ultima_cuota, FECHA_HOY);
   const dias_desde_desembolso   = daysDiff(data.fecha_desembolso, FECHA_HOY);
 
   // Capitalizar el saldo hasta hoy a la tasa diaria del TAE
-  const saldo_bruto_hoy = saldo_tras_ultima_cuota
-    .mul(tasa_diaria_TAE.plus(1).pow(dias_desde_ultima_cuota));
+  // Si TAE ≈ 0, la capitalización diaria = saldo × 1 (sin interés)
+  const cap_factor = tasa_diaria_TAE.abs().lessThan(I_M_THRESHOLD)
+    ? d(1)
+    : tasa_diaria_TAE.plus(1).pow(dias_desde_ultima_cuota);
+  const saldo_bruto_hoy = saldo_tras_ultima_cuota.mul(cap_factor);
 
   // ── Paso 3: Stripe retenido en cuotas ya cobradas ─────────────────────
   // BCAS ya pagó esto a Stripe; no se recupera; se suma al importe AA.
