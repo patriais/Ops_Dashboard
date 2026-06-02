@@ -91,12 +91,29 @@ function calcRate(nper, pmt, pv, guess = 0.01, maxIter = 1000, tol = 1e-15) {
 }
 
 // =============================================================================
-// CAPA DE BASE DE DATOS
+// CAPA DE BASE DE DATOS  –  esquema real BCAS
 //
-// ⚠ TODO (equipo de producto): adaptar los nombres de tabla y columna a los
-//   reales del esquema BCAS antes del deploy a producción.
-//   Los nombres aquí son descriptivos según el spec.
+// Tablas: loan_stats  (1 fila por préstamo)
+//         payin_stats (N filas por préstamo, 1 por cuota)
+//
+// loan_type = 'installment_payments' (PaP):
+//   - pap_* campos contienen P, C y N listos para usar
+//
+// loan_type = 'isa' (ISA de reparto de ingresos):
+//   - payin_stats.principal y .cost son siempre 0
+//   - El plan mezcla payin_type='periodic' y 'simple' (migración histórica)
+//   - P = total_disbursement; N = total de payins no cancelados; C = cuota − P/N
 // =============================================================================
+
+// Helper: mapear loan_status a estado normalizado
+function mapEstado(status) {
+  const ACTIVO  = new Set(['amortization_in_process', 'amortization_not_started', 'amortization_stalled']);
+  const DEFAULT = new Set(['default_asnef', 'default_delinquency_warning', 'default_conciliation', 'unemployed_default']);
+  if (ACTIVO.has(status))        return 'En amortización';
+  if (DEFAULT.has(status))       return 'Default';
+  return status;
+}
+
 async function fetchLoanData(loanId) {
   if (!process.env.DB_URL) throw new Error('DB_URL no configurado');
 
@@ -108,13 +125,14 @@ async function fetchLoanData(loanId) {
     const loanRes = await db.query(
       `SELECT
          loan_id,
-         financed_amount      AS importe_financiado,   -- capital total (€)
-         fee_per_installment  AS coste_por_cuota,      -- componente financiero/cuota (€)
-         total_installments   AS num_total_cuotas,     -- plazo total
-         disbursement_date    AS fecha_desembolso,     -- fecha transferencia a la escuela
-         loan_type            AS tipo_prestamo,        -- 'ISA' | 'PaP' | 'Servicing'
-         loan_status          AS estado_prestamo       -- 'En amortización' | 'Default' | …
-       FROM loans          /* TODO: nombre real de la tabla */
+         loan_type,
+         loan_status,
+         total_amount_financed,
+         total_disbursement,
+         pap_selected_installments,
+         pap_installment_cost,
+         COALESCE(date_disbursement_1, concession_date) AS fecha_desembolso
+       FROM loan_stats
        WHERE loan_id = $1`,
       [loanId]
     );
@@ -126,30 +144,110 @@ async function fetchLoanData(loanId) {
     }
     const row = loanRes.rows[0];
 
-    // ── 2. Cuotas pagadas ──────────────────────────────────────────────────
-    // Se incluyen estados 'Pagada' y 'Conciliada'; se excluyen devoluciones.
-    const paymentsRes = await db.query(
-      `SELECT
-         payment_date  AS fecha_cobro,   -- fecha REAL de cobro (no la teórica del cuadro)
-         amount        AS importe        -- importe realmente cobrado
-       FROM installments  /* TODO: nombre real de la tabla */
-       WHERE loan_id = $1
-         AND status IN ('Pagada', 'Conciliada')
-       ORDER BY payment_date ASC`,
-      [loanId]
-    );
+    if (!row.fecha_desembolso) {
+      const err = new Error(`Préstamo "${loanId}" sin fecha de desembolso (date_disbursement_1 y concession_date son nulos)`);
+      err.statusCode = 422;
+      throw err;
+    }
+
+    const estado_prestamo = mapEstado(row.loan_status);
+    let importe_financiado, coste_por_cuota, num_total_cuotas, tipo_prestamo, cuotas_pagadas;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // RAMA A: installment_payments (PaP)
+    //   Todos los parámetros disponibles en pap_* de loan_stats.
+    //   Las cuotas son siempre payin_type='periodic'.
+    // ══════════════════════════════════════════════════════════════════════
+    if (row.loan_type === 'installment_payments') {
+      if (!row.pap_selected_installments || !row.pap_installment_cost) {
+        const err = new Error(`PaP loan "${loanId}" sin datos de cuotas (pap_* nulos)`);
+        err.statusCode = 422;
+        throw err;
+      }
+      tipo_prestamo    = 'PaP';
+      num_total_cuotas = parseInt(row.pap_selected_installments, 10);
+      importe_financiado = d(row.total_amount_financed);
+      coste_por_cuota    = d(row.pap_installment_cost);
+
+      // Cuotas cobradas: sólo periódicas
+      const paidRes = await db.query(
+        `SELECT amount,
+                COALESCE(collection_date, theorical_date) AS fecha_cobro
+         FROM payin_stats
+         WHERE loan_id = $1
+           AND payin_type = 'periodic'
+           AND payin_status IN ('paid', 'compensated')
+         ORDER BY COALESCE(collection_date, theorical_date) ASC`,
+        [loanId]
+      );
+      cuotas_pagadas = paidRes.rows;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // RAMA B: isa (Income Share Agreement)
+    //   El plan mezcla payin_type='periodic' y 'simple'; todos representan
+    //   cuotas mensuales. N = total de payins no cancelados (ambos tipos).
+    //   P = total_disbursement; C se deriva.
+    // ══════════════════════════════════════════════════════════════════════
+    } else if (row.loan_type === 'isa') {
+      if (!row.total_disbursement || parseFloat(row.total_disbursement) === 0) {
+        const err = new Error(`ISA loan "${loanId}" sin total_disbursement`);
+        err.statusCode = 422;
+        throw err;
+      }
+      tipo_prestamo    = 'ISA';
+      importe_financiado = d(row.total_disbursement);
+
+      // Plan completo: TODOS los payins no cancelados (periodic + simple)
+      const allRes = await db.query(
+        `SELECT amount
+         FROM payin_stats
+         WHERE loan_id = $1
+           AND payin_status NOT IN ('cancelled', 'refunded')
+         ORDER BY theorical_date ASC`,
+        [loanId]
+      );
+
+      if (allRes.rows.length === 0) {
+        const err = new Error(`ISA loan "${loanId}" sin cuotas en el plan`);
+        err.statusCode = 422;
+        throw err;
+      }
+      num_total_cuotas = allRes.rows.length;
+      const amount_per_cuota = d(allRes.rows[0].amount);
+      // cuota = P/N + C  →  C = cuota − P/N
+      coste_por_cuota = amount_per_cuota.minus(importe_financiado.div(num_total_cuotas));
+
+      // Cuotas cobradas: TODOS los tipos pagados (no sólo periodic)
+      // Se excluyen las voluntarias para mantener coherencia con el cuadro de amortización
+      const paidRes = await db.query(
+        `SELECT amount,
+                COALESCE(collection_date, theorical_date) AS fecha_cobro
+         FROM payin_stats
+         WHERE loan_id = $1
+           AND payin_status IN ('paid', 'compensated')
+           AND voluntary = false
+         ORDER BY COALESCE(collection_date, theorical_date) ASC`,
+        [loanId]
+      );
+      cuotas_pagadas = paidRes.rows;
+
+    } else {
+      const err = new Error(`Tipo de préstamo no soportado: "${row.loan_type}". Sólo se admiten 'isa' e 'installment_payments'`);
+      err.statusCode = 422;
+      throw err;
+    }
 
     return {
       loan_id:            String(loanId),
-      importe_financiado: d(row.importe_financiado),
-      coste_por_cuota:    d(row.coste_por_cuota),
-      num_total_cuotas:   parseInt(row.num_total_cuotas, 10),
+      importe_financiado,
+      coste_por_cuota,
+      num_total_cuotas,
       fecha_desembolso:   utcMid(row.fecha_desembolso),
-      tipo_prestamo:      row.tipo_prestamo,
-      estado_prestamo:    row.estado_prestamo,
-      cuotas_pagadas:     paymentsRes.rows.map(r => ({
+      tipo_prestamo,
+      estado_prestamo,
+      cuotas_pagadas:     cuotas_pagadas.map(r => ({
         fecha_cobro: utcMid(r.fecha_cobro),
-        importe:     d(r.importe),
+        importe:     d(r.amount),
       })),
     };
   } finally {
@@ -170,7 +268,7 @@ function calcularConDatos(data, cfg = {}) {
 
   // ── Validaciones ────────────────────────────────────────────────────────
   const errors = [];
-  if (data.tipo_prestamo !== 'ISA')
+  if (!['ISA', 'PaP'].includes(data.tipo_prestamo))
     errors.push({ code: 'UNSUPPORTED_TYPE', message: `Tipo de préstamo no soportado en este release: "${data.tipo_prestamo}"` });
   if (data.estado_prestamo === 'Default')
     errors.push({ code: 'DEFAULT_LOAN',     message: 'Préstamos en default requieren tratamiento legal, no AA' });
