@@ -1268,6 +1268,19 @@ module.exports = async (req, res) => {
     console.error('ensureUsersTable error:', e.message);
   }
 
+  // ── GET /api/make-admin (one-time use — remove after use) ────
+  if (p === '/api/make-admin') {
+    await ensureUsersTable();
+    await dbQuery(
+      `INSERT INTO ops_users (email, password_hash, is_admin) VALUES ($1, $2, true)
+       ON CONFLICT (email) DO UPDATE SET is_admin=true`,
+      ['patricia.ais@bcasapp.com', (await dbQuery('SELECT password_hash FROM ops_users WHERE email=$1', ['patricia.ais@bcasapp.com']))[0]?.password_hash || 'x']
+    );
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ ok: true, msg: 'patricia.ais@bcasapp.com is now admin' }));
+    return;
+  }
+
   // ── POST /api/login ──────────────────────────────────────────
   if (p === '/api/login' && method === 'POST') {
     const body = await parseFormBody(req);
