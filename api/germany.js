@@ -118,6 +118,7 @@ async function getMonthly() {
 }
 
 async function getGraduation() {
+  const EXCL_GRAD = `AND l.loan_status NOT IN ('pending_sign','closed_lost','request_rejected','withdrawal')`;
   return query(`
     SELECT
       l.school_id,
@@ -133,7 +134,7 @@ async function getGraduation() {
       COUNT(*) FILTER (WHERE (l.course_end_date > NOW() OR l.course_end_date IS NULL)
         AND l.loan_status NOT IN ('amortization_in_process','amortization_stalled','prepaid','amortized')) AS study_not_paying
     FROM loan_stats l
-    WHERE l.school_id = ANY($1) ${EXCL}
+    WHERE l.school_id = ANY($1) ${EXCL_GRAD}
     GROUP BY l.school_id ORDER BY l.school_id
   `, [ALL_SCHOOLS]);
 }
