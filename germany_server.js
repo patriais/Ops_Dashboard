@@ -49,8 +49,8 @@ async function getKpiSummary() {
       l.loan_status,
       COUNT(*)                                                          AS n,
       SUM(l.total_amount_financed)                                      AS financed,
-      SUM(COALESCE(l.amount_disbursement_1, 0))                        AS disbursed,
-      SUM(COALESCE(l.amount_disbursement_2,0)+COALESCE(l.amount_disbursement_3,0)+COALESCE(l.amount_disbursement_4,0)+COALESCE(l.amount_disbursement_5,0)+COALESCE(l.amount_disbursement_6,0)) AS pte_desembolso,
+      COALESCE(SUM(po_paid.disbursed), 0)                              AS disbursed,
+      COALESCE(SUM(po_pend.pending), 0)                               AS pte_desembolso,
       COALESCE(SUM(paid.paid_amount), 0)                               AS recobrado,
       SUM(COALESCE(l.total_outstanding_balance, 0))                    AS pte_recobro
     FROM loan_stats l
@@ -60,6 +60,14 @@ async function getKpiSummary() {
       WHERE ps.payin_status = 'paid'
       GROUP BY ps.loan_id
     ) paid ON l.loan_id = paid.loan_id
+    LEFT JOIN (
+      SELECT loan_id, SUM(amount) AS disbursed
+      FROM payout_stats WHERE status='paid' GROUP BY loan_id
+    ) po_paid ON l.loan_id = po_paid.loan_id
+    LEFT JOIN (
+      SELECT loan_id, SUM(amount) AS pending
+      FROM payout_stats WHERE status='pending' GROUP BY loan_id
+    ) po_pend ON l.loan_id = po_pend.loan_id
     WHERE l.school_id = ANY($1) ${EXCL_SQL}
     GROUP BY l.school_id, l.loan_type, l.loan_status
     ORDER BY l.school_id, l.loan_type, l.loan_status
