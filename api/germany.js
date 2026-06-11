@@ -204,6 +204,13 @@ module.exports = async (req, res) => {
     if (p === '/api/monthly')     return json(res, await getMonthly());
     if (p === '/api/payins')      return json(res, await getPayins());
     if (p === '/api/graduation')  return json(res, await getGraduation());
+    if (p === '/api/all') {
+      const [summary, bySchool, status, monthly, payins, graduation, loans] = await Promise.all([
+        getKpiSummary(), getBySchool(), getStatus(), getMonthly(), getPayins(), getGraduation(),
+        getLoans({ page: 1, size: 50 }),
+      ]);
+      return json(res, { summary, bySchool, status, monthly, payins, graduation, loans });
+    }
     if (p === '/api/hs-contact') {
       const email = url.searchParams.get('email');
       if (!email) return res.status(400).json({ error: 'email required' });

@@ -751,21 +751,7 @@ function filterFromGradTable(el) {
 let currentPage=1, searchTimer=null;
 function debSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadLoans(1),350);}
 
-async function loadLoans(page){
-  currentPage=page||1;
-  const schoolSel=document.getElementById('fSchool').value;
-  const type=document.getElementById('fType').value;
-  const status=document.getElementById('fStatus').value;
-  const graduated=document.getElementById('fGraduated').value;
-  const search=document.getElementById('fSearch').value.trim();
-  const params=new URLSearchParams({page:currentPage,size:50});
-  if(schoolSel!=='all')params.set('school_id',schoolSel);
-  if(type!=='all')params.set('loan_type',type);
-  if(status!=='all')params.set('loan_status',status);
-  if(graduated!=='all')params.set('graduated',graduated);
-  if(search)params.set('search',search);
-  document.getElementById('tableBody').innerHTML='<div class="loading"><span class="spin"></span>Loading loans...</div>';
-  const d=await apiFetch('/api/loans?'+params);
+function renderLoans(d){
   document.getElementById('tableCount').textContent=fmtN(d.total)+' loans';
   if(!d.rows.length){document.getElementById('tableBody').innerHTML='<div class="empty">No results</div>';document.getElementById('pager').style.display='none';return;}
   const rows=d.rows.map(r=>`<tr>
@@ -786,12 +772,29 @@ async function loadLoans(page){
     <th>ID</th><th>School</th><th>Email</th><th>Type</th><th>Status</th><th>Course</th>
     <th class="r">Financed</th><th class="r">Disbursed</th><th class="r">Outstanding</th><th>Concession date</th><th>Graduation date</th><th></th>
   </tr></thead><tbody>${rows}</tbody></table>`;
-
   const total=d.total,from=(currentPage-1)*d.size+1,to=Math.min(currentPage*d.size,total),tp=Math.ceil(total/d.size);
   document.getElementById('pager').style.display='flex';
   document.getElementById('pagerInfo').textContent=`Showing ${from}–${to} of ${fmtN(total)}`;
   document.getElementById('btnPrev').disabled=currentPage<=1;
   document.getElementById('btnNext').disabled=currentPage>=tp;
+}
+
+async function loadLoans(page){
+  currentPage=page||1;
+  const schoolSel=document.getElementById('fSchool').value;
+  const type=document.getElementById('fType').value;
+  const status=document.getElementById('fStatus').value;
+  const graduated=document.getElementById('fGraduated').value;
+  const search=document.getElementById('fSearch').value.trim();
+  const params=new URLSearchParams({page:currentPage,size:50});
+  if(schoolSel!=='all')params.set('school_id',schoolSel);
+  if(type!=='all')params.set('loan_type',type);
+  if(status!=='all')params.set('loan_status',status);
+  if(graduated!=='all')params.set('graduated',graduated);
+  if(search)params.set('search',search);
+  document.getElementById('tableBody').innerHTML='<div class="loading"><span class="spin"></span>Loading loans...</div>';
+  const d=await apiFetch('/api/loans?'+params);
+  renderLoans(d);
 }
 
 // ── Excel export ──────────────────────────────────────────────────────────────
@@ -885,14 +888,8 @@ async function downloadExcel() {
 // ── Load all ──────────────────────────────────────────────────────────────────
 async function loadAll(){
   document.getElementById('lastUpdate').textContent='Updating...';
-  const [summary, bySchool, status, monthly, payins, graduation] = await Promise.all([
-    apiFetch('/api/kpi-summary'),
-    apiFetch('/api/by-school'),
-    apiFetch('/api/status'),
-    apiFetch('/api/monthly'),
-    apiFetch('/api/payins'),
-    apiFetch('/api/graduation'),
-  ]);
+  const all = await apiFetch('/api/all');
+  const { summary, bySchool, status, monthly, payins, graduation, loans } = all;
   rawSummary=summary; rawBySchool=bySchool; rawStatus=status; rawMonthly=monthly; rawPayins=payins; rawGraduation=graduation;
   buildPills();
   renderSummaryAbs(summary);
@@ -904,7 +901,7 @@ async function loadAll(){
   renderMonthlyChart(monthly);
   renderPayinSummary(payins);
   renderKpis();
-  loadLoans(1);
+  renderLoans(loans);
 
   document.getElementById('lastUpdate').textContent='Updated: '+new Date().toLocaleString('en-GB');
 }

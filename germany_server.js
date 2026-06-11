@@ -279,6 +279,14 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/payins')      return json(res, await getPayins());
     if (p === '/api/graduation')  return json(res, await getGraduation());
 
+    if (p === '/api/all') {
+      const [summary, bySchool, status, monthly, payins, graduation, loans] = await Promise.all([
+        getKpiSummary(), getBySchool(), getByStatus(), getMonthly(), getPayins(), getGraduation(),
+        getLoans({ page: 1, size: 50 }),
+      ]);
+      return json(res, { summary, bySchool, status, monthly, payins, graduation, loans });
+    }
+
     if (p === '/api/hs-contact') {
       const email = url.searchParams.get('email');
       if (!email) { res.writeHead(400); return res.end(JSON.stringify({ error: 'email required' })); }
