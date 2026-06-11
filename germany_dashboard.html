@@ -517,6 +517,12 @@ function renderGraduationTable(rows) {
     </tr>`;
   }
 
+  function clickable(n, graduatedVal, payingVal) {
+    const grad = graduatedVal !== null ? `data-grad="${graduatedVal}"` : '';
+    const paying = payingVal !== null ? `data-paying="${payingVal}"` : '';
+    return `<span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;color:#1d4ed8" ${grad} ${paying} onclick="filterFromGradTable(this)">${fmtN(n)}</span>`;
+  }
+
   document.getElementById('graduationTable').innerHTML = `<table class="sum-table">
     <thead><tr>
       <th style="width:220px;text-align:left">Category</th>
@@ -525,9 +531,9 @@ function renderGraduationTable(rows) {
       <th>Not yet paying</th>
     </tr></thead>
     <tbody>
-      ${row('Total students', 'row-main', total, gradPaying + studyPaying, gradNot + studyNot)}
-      ${row('&nbsp;&nbsp;&nbsp;Of which graduated', 'row-sub', graduated, gradPaying, gradNot)}
-      ${row('&nbsp;&nbsp;&nbsp;Of which studying', 'row-sub', studying, studyPaying, studyNot)}
+      <tr class="row-main"><td>Total students</td><td>${clickable(total, null, null)}</td><td>${clickable(gradPaying+studyPaying, null, 'yes')}&nbsp;<span style="color:#9ca3af;font-weight:400;font-size:10px">${pct(gradPaying+studyPaying,total)}</span></td><td>${clickable(gradNot+studyNot, null, 'no')}&nbsp;<span style="color:#9ca3af;font-weight:400;font-size:10px">${pct(gradNot+studyNot,total)}</span></td></tr>
+      <tr class="row-sub"><td>&nbsp;&nbsp;&nbsp;Of which graduated</td><td>${clickable(graduated, 'yes', null)}</td><td>${clickable(gradPaying, 'yes', 'yes')}&nbsp;<span style="color:#9ca3af;font-weight:400;font-size:10px">${pct(gradPaying,graduated)}</span></td><td>${clickable(gradNot, 'yes', 'no')}&nbsp;<span style="color:#9ca3af;font-weight:400;font-size:10px">${pct(gradNot,graduated)}</span></td></tr>
+      <tr class="row-sub"><td>&nbsp;&nbsp;&nbsp;Of which studying</td><td>${clickable(studying, 'no', null)}</td><td>${clickable(studyPaying, 'no', 'yes')}&nbsp;<span style="color:#9ca3af;font-weight:400;font-size:10px">${pct(studyPaying,studying)}</span></td><td>${clickable(studyNot, 'no', 'no')}&nbsp;<span style="color:#9ca3af;font-weight:400;font-size:10px">${pct(studyNot,studying)}</span></td></tr>
     </tbody>
   </table>`;
 }
@@ -692,6 +698,29 @@ function renderPayinSummary(rows){
     <div class="payin-card"><div class="pt">In collection</div><div class="pv" style="color:#dc2626">${fmt(claimed)}</div><div class="psub">claimed</div></div>
     <div class="payin-card"><div class="pt">Failed / cancelled</div><div class="pv" style="color:#dc2626">${fmt(failed)}</div><div class="psub">failed + cancelled</div></div>
   `;
+}
+
+// ── Filter from graduation table click ───────────────────────────────────────
+function filterFromGradTable(el) {
+  const grad    = el.dataset.grad;    // 'yes' | 'no' | undefined
+  const paying  = el.dataset.paying;  // 'yes' | 'no' | undefined
+
+  // Set graduation filter
+  document.getElementById('fGraduated').value = grad || 'all';
+
+  // Set status filter based on paying
+  const fStatus = document.getElementById('fStatus');
+  if (paying === 'yes') {
+    // paying = in repayment statuses — use first matching option or keep all
+    fStatus.value = 'all'; // can't map multi-status to single select, so reset
+  } else if (paying === 'no') {
+    fStatus.value = 'amortization_not_started';
+  } else {
+    fStatus.value = 'all';
+  }
+
+  loadLoans(1);
+  document.querySelector('.section').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── Loan table ─────────────────────────────────────────────────────────────────
