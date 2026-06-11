@@ -90,6 +90,27 @@ async function getMonthly() {
   `, [ALL_SCHOOLS]);
 }
 
+async function getGraduation() {
+  return query(`
+    SELECT
+      l.school_id,
+      COUNT(*)                                                                                 AS total,
+      COUNT(*) FILTER (WHERE l.course_end_date <= NOW())                                     AS graduated,
+      COUNT(*) FILTER (WHERE l.course_end_date <= NOW()
+        AND l.loan_status IN ('amortization_in_process','amortization_stalled','prepaid','amortized')) AS grad_paying,
+      COUNT(*) FILTER (WHERE l.course_end_date <= NOW()
+        AND l.loan_status NOT IN ('amortization_in_process','amortization_stalled','prepaid','amortized')) AS grad_not_paying,
+      COUNT(*) FILTER (WHERE l.course_end_date > NOW() OR l.course_end_date IS NULL)         AS studying,
+      COUNT(*) FILTER (WHERE (l.course_end_date > NOW() OR l.course_end_date IS NULL)
+        AND l.loan_status IN ('amortization_in_process','amortization_stalled','prepaid','amortized')) AS study_paying,
+      COUNT(*) FILTER (WHERE (l.course_end_date > NOW() OR l.course_end_date IS NULL)
+        AND l.loan_status NOT IN ('amortization_in_process','amortization_stalled','prepaid','amortized')) AS study_not_paying
+    FROM loan_stats l
+    WHERE l.school_id = ANY($1) ${EXCL}
+    GROUP BY l.school_id ORDER BY l.school_id
+  `, [ALL_SCHOOLS]);
+}
+
 async function getPayins() {
   return query(`
     SELECT l.school_id, p.payin_status, COUNT(*) AS n, SUM(p.amount) AS total
@@ -152,6 +173,7 @@ module.exports = async (req, res) => {
     if (p === '/api/status')      return json(res, await getStatus());
     if (p === '/api/monthly')     return json(res, await getMonthly());
     if (p === '/api/payins')      return json(res, await getPayins());
+    if (p === '/api/graduation')  return json(res, await getGraduation());
     if (p === '/api/loans') {
       const q = url.searchParams;
       return json(res, await getLoans({

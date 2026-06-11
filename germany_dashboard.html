@@ -192,9 +192,16 @@ tr:hover td{background:#f9fafb}
     </div>
   </div>
 
-  <div class="card" style="margin-bottom:20px">
+  <div class="card" style="margin-bottom:12px">
     <div class="card-title">Summary table · % of total</div>
     <div id="summaryTablePct" style="overflow-x:auto">
+      <div class="loading"><span class="spin"></span>Loading...</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Graduation status · Paying vs Not paying</div>
+    <div id="graduationTable" style="overflow-x:auto">
       <div class="loading"><span class="spin"></span>Loading...</div>
     </div>
   </div>
@@ -358,7 +365,7 @@ function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];
 async function apiFetch(p){const r=await fetch(API+p);if(!r.ok)throw new Error(await r.text());return r.json();}
 
 let activeSet = new Set([...DE_IDS, PT_ID]); // all on by default
-let rawSummary = null, rawBySchool = null, rawStatus = null, rawMonthly = null, rawPayins = null;
+let rawSummary = null, rawBySchool = null, rawStatus = null, rawMonthly = null, rawPayins = null, rawGraduation = null;
 let c1Mode='n', c2Mode='all', c3Mode='all';
 
 function activeSchools(){ return [...activeSet]; }
@@ -481,6 +488,45 @@ function renderSummaryPct(rows){
     </tbody></table>`;
 }
 
+// ── Graduation table ──────────────────────────────────────────────────────────
+function renderGraduationTable(rows) {
+  const active = activeSchools();
+  const R = rows.filter(r => active.includes(parseInt(r.school_id)));
+  const sum = (field) => R.reduce((s, r) => s + parseInt(r[field] || 0), 0);
+
+  const total        = sum('total');
+  const graduated    = sum('graduated');
+  const gradPaying   = sum('grad_paying');
+  const gradNot      = sum('grad_not_paying');
+  const studying     = sum('studying');
+  const studyPaying  = sum('study_paying');
+  const studyNot     = sum('study_not_paying');
+
+  function pct(n, d) { return d ? (n / d * 100).toFixed(1) + '%' : '—'; }
+  function row(label, cls, n, paying, notPaying) {
+    return `<tr class="${cls}">
+      <td>${label}</td>
+      <td>${fmtN(n)}</td>
+      <td>${fmtN(paying)}<span style="color:#9ca3af;font-weight:400;font-size:10px"> &nbsp;${pct(paying, n)}</span></td>
+      <td>${fmtN(notPaying)}<span style="color:#9ca3af;font-weight:400;font-size:10px"> &nbsp;${pct(notPaying, n)}</span></td>
+    </tr>`;
+  }
+
+  document.getElementById('graduationTable').innerHTML = `<table class="sum-table">
+    <thead><tr>
+      <th style="width:220px;text-align:left">Category</th>
+      <th># Students</th>
+      <th>Paying</th>
+      <th>Not yet paying</th>
+    </tr></thead>
+    <tbody>
+      ${row('Total students', 'row-main', total, gradPaying + studyPaying, gradNot + studyNot)}
+      ${row('&nbsp;&nbsp;&nbsp;Of which graduated', 'row-sub', graduated, gradPaying, gradNot)}
+      ${row('&nbsp;&nbsp;&nbsp;Of which studying', 'row-sub', studying, studyPaying, studyNot)}
+    </tbody>
+  </table>`;
+}
+
 // ── Pie charts ────────────────────────────────────────────────────────────────
 function makePie(id,labels,data,colors,currency=false){
   destroyChart(id);
@@ -527,6 +573,7 @@ function switchC3(m){c3Mode=m;['All','Isa','Pap'].forEach(x=>document.getElement
 function redrawAll(){
   renderSummaryAbs(rawSummary);
   renderSummaryPct(rawSummary);
+  if(rawGraduation) renderGraduationTable(rawGraduation);
   renderChart1(rawSummary);
   renderChart2(rawSummary);
   renderChart3(rawSummary);
@@ -775,17 +822,19 @@ async function downloadExcel() {
 // ── Load all ──────────────────────────────────────────────────────────────────
 async function loadAll(){
   document.getElementById('lastUpdate').textContent='Updating...';
-  const [summary, bySchool, status, monthly, payins] = await Promise.all([
+  const [summary, bySchool, status, monthly, payins, graduation] = await Promise.all([
     apiFetch('/api/kpi-summary'),
     apiFetch('/api/by-school'),
     apiFetch('/api/status'),
     apiFetch('/api/monthly'),
     apiFetch('/api/payins'),
+    apiFetch('/api/graduation'),
   ]);
-  rawSummary=summary; rawBySchool=bySchool; rawStatus=status; rawMonthly=monthly; rawPayins=payins;
+  rawSummary=summary; rawBySchool=bySchool; rawStatus=status; rawMonthly=monthly; rawPayins=payins; rawGraduation=graduation;
   buildPills();
   renderSummaryAbs(summary);
   renderSummaryPct(summary);
+  renderGraduationTable(graduation);
   renderChart1(summary); renderChart2(summary); renderChart3(summary); renderChart4(summary);
   renderSchoolBreakdown(bySchool);
   renderSchoolFinChart(bySchool);
