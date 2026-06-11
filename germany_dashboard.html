@@ -319,6 +319,11 @@ tr:hover td{background:#f9fafb}
           <option value="condoned">Condoned</option>
           <option value="amortized">Amortized</option>
         </select>
+        <select id="fGraduated" onchange="loadLoans(1)">
+          <option value="all">All students</option>
+          <option value="yes">✓ Graduated</option>
+          <option value="no">⏳ Still studying</option>
+        </select>
         <input id="fSearch" type="text" placeholder="Search email / ID / course..." oninput="debSearch()" />
       </div>
     </div>
@@ -698,11 +703,13 @@ async function loadLoans(page){
   const schoolSel=document.getElementById('fSchool').value;
   const type=document.getElementById('fType').value;
   const status=document.getElementById('fStatus').value;
+  const graduated=document.getElementById('fGraduated').value;
   const search=document.getElementById('fSearch').value.trim();
   const params=new URLSearchParams({page:currentPage,size:50});
   if(schoolSel!=='all')params.set('school_id',schoolSel);
   if(type!=='all')params.set('loan_type',type);
   if(status!=='all')params.set('loan_status',status);
+  if(graduated!=='all')params.set('graduated',graduated);
   if(search)params.set('search',search);
   document.getElementById('tableBody').innerHTML='<div class="loading"><span class="spin"></span>Loading loans...</div>';
   const d=await apiFetch('/api/loans?'+params);
@@ -719,10 +726,11 @@ async function loadLoans(page){
     <td class="r">${fmt(r.total_disbursement)}</td>
     <td class="r">${fmt(r.total_outstanding_balance)}</td>
     <td>${fmtDate(r.concession_date)}</td>
+    <td>${r.course_end_date ? `<span style="color:${new Date(r.course_end_date)<=new Date()?'#059669':'#6b7280'}">${fmtDate(r.course_end_date)}</span>` : '—'}</td>
   </tr>`).join('');
   document.getElementById('tableBody').innerHTML=`<table><thead><tr>
     <th>ID</th><th>School</th><th>Email</th><th>Type</th><th>Status</th><th>Course</th>
-    <th class="r">Financed</th><th class="r">Disbursed</th><th class="r">Outstanding</th><th>Concession date</th>
+    <th class="r">Financed</th><th class="r">Disbursed</th><th class="r">Outstanding</th><th>Concession date</th><th>Graduation date</th>
   </tr></thead><tbody>${rows}</tbody></table>`;
   const total=d.total,from=(currentPage-1)*d.size+1,to=Math.min(currentPage*d.size,total),tp=Math.ceil(total/d.size);
   document.getElementById('pager').style.display='flex';

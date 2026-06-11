@@ -121,7 +121,7 @@ async function getPayins() {
   `, [ALL_SCHOOLS]);
 }
 
-async function getLoans({ loan_type, loan_status, search, page, size }) {
+async function getLoans({ loan_type, loan_status, graduated, search, page, size }) {
   const conds = [
     'l.school_id = ANY($1)',
     `l.loan_status NOT IN ('pending_sign','closed_lost','request_rejected')`,
@@ -130,6 +130,8 @@ async function getLoans({ loan_type, loan_status, search, page, size }) {
   let pi = 2;
   if (loan_type && loan_type !== 'all')     { conds.push(`l.loan_type=$${pi++}`);   params.push(loan_type); }
   if (loan_status && loan_status !== 'all') { conds.push(`l.loan_status=$${pi++}`); params.push(loan_status); }
+  if (graduated === 'yes') conds.push(`l.course_end_date <= NOW()`);
+  if (graduated === 'no')  conds.push(`(l.course_end_date > NOW() OR l.course_end_date IS NULL)`);
   if (search) {
     conds.push(`(l.email ILIKE $${pi} OR l.loan_id::text=$${pi} OR cs.name ILIKE $${pi})`);
     params.push(`%${search}%`); pi++;
@@ -144,7 +146,7 @@ async function getLoans({ loan_type, loan_status, search, page, size }) {
   const rows = await query(`
     SELECT l.loan_id, l.school_id, l.email, l.loan_type, l.loan_status,
       cs.name AS course, l.total_amount_financed, l.total_disbursement,
-      l.total_outstanding_balance, l.concession_date
+      l.total_outstanding_balance, l.concession_date, l.course_end_date
     FROM loan_stats l LEFT JOIN course_stats cs ON l.course_id=cs.course_id
     WHERE ${where} ORDER BY l.concession_date DESC NULLS LAST
     LIMIT $${pi} OFFSET $${pi+1}
@@ -179,6 +181,7 @@ module.exports = async (req, res) => {
       return json(res, await getLoans({
         loan_type:   q.get('loan_type'),
         loan_status: q.get('loan_status'),
+        graduated:   q.get('graduated'),
         search:      q.get('search'),
         page:        q.get('page'),
         size:        q.get('size'),
