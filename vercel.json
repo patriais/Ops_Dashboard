@@ -1,7 +1,21 @@
 {
-  "rewrites": [{ "source": "/", "destination": "/api/index" }],
+  "rewrites": [
+    { "source": "/api/login",                                 "destination": "/api/index" },
+    { "source": "/api/logout",                                "destination": "/api/index" },
+    { "source": "/api/users",                                 "destination": "/api/index" },
+    { "source": "/api/cron",                                  "destination": "/api/index" },
+    { "source": "/api/dt/:path*",                             "destination": "/api/default_traceability" },
+    { "source": "/",                                          "destination": "/api/index" },
+    { "source": "/escuelas/cartera-alemania",                 "destination": "/api/germany" },
+    { "source": "/escuelas/cartera-alemania/api/:path*",      "destination": "/api/germany" }
+  ],
   "functions": {
-    "api/index.js":     { "maxDuration": 30 },
-    "api/calculate.js": { "maxDuration": 30 }
-  }
+    "api/index.js":                  { "maxDuration": 60 },
+    "api/calculate.js":              { "maxDuration": 30 },
+    "api/germany.js":                { "maxDuration": 30 },
+    "api/default_traceability.js":   { "maxDuration": 60 }
+  },
+  "crons": [
+    { "path": "/api/cron", "schedule": "*/10 * * * *" }
+  ]
 }

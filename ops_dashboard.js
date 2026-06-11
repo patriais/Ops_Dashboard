@@ -120,6 +120,41 @@ async function ensureUsersTable() {
   _usersReady = true;
 }
 
+// ── Dashboard cache (DB-backed) ────────────────────────────────
+let _cacheTableReady = false;
+async function ensureCacheTable() {
+  if (_cacheTableReady) return;
+  await dbQuery(`
+    CREATE TABLE IF NOT EXISTS dashboard_cache (
+      key TEXT PRIMARY KEY,
+      html TEXT NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  _cacheTableReady = true;
+}
+async function readDashCache(key) {
+  await ensureCacheTable();
+  const rows = await dbQuery('SELECT html, updated_at FROM dashboard_cache WHERE key=$1', [key]);
+  return rows[0] || null;
+}
+async function writeDashCache(key, html) {
+  await ensureCacheTable();
+  await dbQuery(
+    `INSERT INTO dashboard_cache (key, html, updated_at) VALUES ($1, $2, NOW())
+     ON CONFLICT (key) DO UPDATE SET html=$2, updated_at=NOW()`,
+    [key, html]
+  );
+}
+
+async function buildDashHtml() {
+  const results = await Promise.all(DASHBOARDS.map(cfg => processDashboard(cfg)));
+  const dashData = {};
+  DASHBOARDS.forEach((cfg, i) => { dashData[cfg.id] = results[i]; });
+  const now = new Date().toLocaleString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  return buildHtml(dashData, now, { email: '', isAdmin: false });
+}
+
 async function readBody(req) {
   return new Promise((resolve) => {
     let body = '';
@@ -312,9 +347,24 @@ async function fetchTickets(cfg) {
     'createdate','hs_lastmodifieddate','request_type',
     ...Object.values(cfg.stageEntryProps),
   ];
+  // Active tickets (any age) + closed tickets from last 12 months only
+  const cutoff = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).getTime().toString();
+  const filterGroups = [
+    // Group 1: active (not in closed stages)
+    { filters: [
+      { propertyName: 'hs_pipeline', operator: 'EQ', value: cfg.pipelineId },
+      { propertyName: 'hs_pipeline_stage', operator: 'NOT_IN', values: cfg.closedStages },
+    ]},
+    // Group 2: closed but created in last 12 months
+    { filters: [
+      { propertyName: 'hs_pipeline', operator: 'EQ', value: cfg.pipelineId },
+      { propertyName: 'hs_pipeline_stage', operator: 'IN', values: cfg.closedStages },
+      { propertyName: 'createdate', operator: 'GTE', value: cutoff },
+    ]},
+  ];
   do {
     const body = {
-      filterGroups: [{ filters: [{ propertyName: 'hs_pipeline', operator: 'EQ', value: cfg.pipelineId }] }],
+      filterGroups,
       properties: props,
       sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'DESCENDING' }],
       limit: 100,
@@ -1520,6 +1570,24 @@ module.exports = async (req, res) => {
     return;
   }
 
+  // ── GET /api/cron (Vercel cron job — no auth cookie needed) ──
+  if (p === '/api/cron') {
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronSecret && req.headers['authorization'] !== `Bearer ${cronSecret}`) {
+      res.statusCode = 401; res.end('Unauthorized'); return;
+    }
+    try {
+      const html = await buildDashHtml();
+      await writeDashCache('main', html);
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ ok: true, updated: new Date().toISOString() }));
+    } catch (e) {
+      res.statusCode = 500;
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
   // ── POST /api/logout ─────────────────────────────────────────
   if (p === '/api/logout' && method === 'POST') {
     res.setHeader('Set-Cookie', clearCookieHeader());
@@ -1591,19 +1659,15 @@ module.exports = async (req, res) => {
 
   // ── Main dashboard ───────────────────────────────────────────
   try {
-    const cacheKey = 'main';
-    const cached = _cache[cacheKey];
-    if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+    const cached = await readDashCache('main');
+    if (cached) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       return res.end(cached.html);
     }
-    const results = await Promise.all(DASHBOARDS.map(cfg => processDashboard(cfg)));
-    const dashData = {};
-    DASHBOARDS.forEach((cfg, i) => { dashData[cfg.id] = results[i]; });
-    const now = new Date().toLocaleString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-    const html = buildHtml(dashData, now, user);
-    _cache[cacheKey] = { html, ts: Date.now() };
+    // No cache yet — build live and store
+    const html = await buildDashHtml();
+    await writeDashCache('main', html).catch(() => {});
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.end(html);
