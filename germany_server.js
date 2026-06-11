@@ -6,8 +6,35 @@ const fs   = require('fs');
 const path = require('path');
 const { Client } = require('pg');
 
-const DB_URL = 'postgresql://javigonzalez:dpQD0mZZXalm6GnGCeqVrkNxwG3IoQQv@yamabiko.proxy.rlwy.net:45316/railway';
-const PORT   = process.env.PORT || 3033;
+const DB_URL   = 'postgresql://javigonzalez:dpQD0mZZXalm6GnGCeqVrkNxwG3IoQQv@yamabiko.proxy.rlwy.net:45316/railway';
+const HS_TOKEN = process.env.HS_TOKEN;
+const PORT     = process.env.PORT || 3033;
+
+const https = require('https');
+function hsPost(hsPath, body) {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify(body);
+    const req = https.request({
+      hostname: 'api.hubapi.com', path: hsPath, method: 'POST',
+      headers: { Authorization: `Bearer ${HS_TOKEN}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+    }, res => { let d = ''; res.on('data', c => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(e); } }); });
+    req.on('error', reject); req.write(payload); req.end();
+  });
+}
+
+async function getHsContact(email) {
+  if (!HS_TOKEN) return null;
+  const r = await hsPost('/crm/v3/objects/contacts/search', {
+    filterGroups: [{ filters: [{ propertyName: 'email', operator: 'EQ', value: email }] }],
+    properties: ['firstname', 'lastname', 'hs_linkedin_url'],
+  });
+  if (!r.results || !r.results[0]) return null;
+  const p = r.results[0].properties;
+  const name = [p.firstname, p.lastname].filter(Boolean).join(' ').trim();
+  const linkedin_url = p.hs_linkedin_url ||
+    (name ? `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(name)}` : null);
+  return { name, linkedin_url };
+}
 
 const SCHOOLS_DE = [243, 244, 287, 208]; // Ironhack GER, Code University, LeWagonGer, Tomorrow
 const SCHOOL_PT  = 412;                  // Ironhack Portugal
@@ -250,6 +277,12 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/monthly')     return json(res, await getMonthly());
     if (p === '/api/payins')      return json(res, await getPayins());
     if (p === '/api/graduation')  return json(res, await getGraduation());
+
+    if (p === '/api/hs-contact') {
+      const email = url.searchParams.get('email');
+      if (!email) { res.writeHead(400); return res.end(JSON.stringify({ error: 'email required' })); }
+      return json(res, await getHsContact(email) || {});
+    }
 
     if (p === '/api/loans') {
       const q = url.searchParams;

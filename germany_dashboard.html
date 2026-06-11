@@ -151,6 +151,9 @@ tr:hover td{background:#f9fafb}
 .spin{display:inline-block;width:18px;height:18px;border:2px solid #e5e7eb;border-top-color:#1d4ed8;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:28px;color:#9ca3af;font-size:12px}
+.li-btn{background:#0a66c2;color:#fff;border:none;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:800;cursor:pointer;letter-spacing:.3px;transition:opacity .15s}
+.li-btn:hover{opacity:.85}
+.li-btn:disabled{background:#e5e7eb;color:#9ca3af;cursor:default}
 </style>
 </head>
 <body>
@@ -700,6 +703,27 @@ function renderPayinSummary(rows){
   `;
 }
 
+// ── LinkedIn lookup ───────────────────────────────────────────────────────────
+async function openLinkedIn(btn, email) {
+  if (!email) return;
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const d = await apiFetch('/api/hs-contact?email=' + encodeURIComponent(email));
+    if (d.linkedin_url) {
+      window.open(d.linkedin_url, '_blank');
+      btn.textContent = 'in';
+      btn.title = d.name || email;
+    } else {
+      btn.textContent = '?';
+      btn.title = 'Not found in HubSpot';
+    }
+  } catch(e) {
+    btn.textContent = '!';
+  }
+  btn.disabled = false;
+}
+
 // ── Filter from graduation table click ───────────────────────────────────────
 function filterFromGradTable(el) {
   const grad    = el.dataset.grad;    // 'yes' | 'no' | undefined
@@ -756,11 +780,13 @@ async function loadLoans(page){
     <td class="r">${fmt(r.total_outstanding_balance)}</td>
     <td>${fmtDate(r.concession_date)}</td>
     <td>${r.course_end_date ? `<span style="color:${new Date(r.course_end_date)<=new Date()?'#059669':'#6b7280'}">${fmtDate(r.course_end_date)}</span>` : '—'}</td>
+    <td><button class="li-btn" onclick="openLinkedIn(this,'${(r.email||'').replace(/'/g,"\\'")}')">in</button></td>
   </tr>`).join('');
   document.getElementById('tableBody').innerHTML=`<table><thead><tr>
     <th>ID</th><th>School</th><th>Email</th><th>Type</th><th>Status</th><th>Course</th>
-    <th class="r">Financed</th><th class="r">Disbursed</th><th class="r">Outstanding</th><th>Concession date</th><th>Graduation date</th>
+    <th class="r">Financed</th><th class="r">Disbursed</th><th class="r">Outstanding</th><th>Concession date</th><th>Graduation date</th><th></th>
   </tr></thead><tbody>${rows}</tbody></table>`;
+
   const total=d.total,from=(currentPage-1)*d.size+1,to=Math.min(currentPage*d.size,total),tp=Math.ceil(total/d.size);
   document.getElementById('pager').style.display='flex';
   document.getElementById('pagerInfo').textContent=`Showing ${from}–${to} of ${fmtN(total)}`;
