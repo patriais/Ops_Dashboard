@@ -1,10 +1,36 @@
 // api/germany.js — Serverless function: Cartera Alemania + Portugal
-const fs   = require('fs');
-const path = require('path');
+const fs     = require('fs');
+const path   = require('path');
+const crypto = require('crypto');
 const { Client } = require('pg');
 
-const DB_URL    = process.env.DB_URL;
-const HS_TOKEN  = process.env.HS_TOKEN;
+const DB_URL      = process.env.DB_URL;
+const HS_TOKEN    = process.env.HS_TOKEN;
+const AUTH_SECRET = process.env.AUTH_SECRET || 'dev-secret-please-set-in-vercel';
+
+function parseCookies(req) {
+  const out = {};
+  (req.headers.cookie || '').split(';').forEach(c => {
+    const eq = c.indexOf('=');
+    if (eq > 0) out[c.slice(0, eq).trim()] = decodeURIComponent(c.slice(eq + 1).trim());
+  });
+  return out;
+}
+function getAuthUser(req) {
+  const token = parseCookies(req).ops_tok;
+  if (!token) return null;
+  const dot = token.lastIndexOf('.');
+  if (dot < 0) return null;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('hex');
+  if (sig !== expected) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    if (data.exp < Date.now()) return null;
+    return data;
+  } catch { return null; }
+}
 
 const https = require('https');
 function hsPost(path, body) {
@@ -191,6 +217,16 @@ function json(res, data) {
 module.exports = async (req, res) => {
   const url = new URL(req.url, `https://${req.headers.host}`);
   const p = url.pathname.replace(/^\/escuelas\/cartera-alemania/, '') || '/';
+
+  // Auth check — same cookie as the main ops dashboard
+  if (!getAuthUser(req)) {
+    if (p.startsWith('/api/')) {
+      res.statusCode = 401;
+      return res.status(401).json({ error: 'No autenticado' });
+    }
+    res.setHeader('Location', '/');
+    return res.status(302).send('');
+  }
 
   try {
     if (p === '/' || p === '') {
