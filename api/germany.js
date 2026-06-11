@@ -218,16 +218,6 @@ module.exports = async (req, res) => {
   const url = new URL(req.url, `https://${req.headers.host}`);
   const p = url.pathname.replace(/^\/escuelas\/cartera-alemania/, '') || '/';
 
-  // Auth check — same cookie as the main ops dashboard
-  if (!getAuthUser(req)) {
-    if (p.startsWith('/api/')) {
-      res.statusCode = 401;
-      return res.status(401).json({ error: 'No autenticado' });
-    }
-    res.setHeader('Location', '/');
-    return res.status(302).send('');
-  }
-
   try {
     if (p === '/' || p === '') {
       const html = fs.readFileSync(path.join(__dirname, '..', 'germany_dashboard.html'), 'utf8');
