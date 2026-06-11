@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Germany Portfolio · BCAS</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;background:#f9fafb;color:#111827;font-size:13px}
+.topbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.logo{width:36px;height:36px;background:#1e3a5f;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;letter-spacing:.5px}
+.topbar h1{font-size:15px;font-weight:700;color:#111827}
+.topbar .sub{font-size:11px;color:#9ca3af;margin-top:1px}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}
+.refresh-btn{background:none;border:1px solid #e5e7eb;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;color:#6b7280;cursor:pointer}
+.refresh-btn:hover{background:#f9fafb;color:#111827}
+.last-update{font-size:10px;color:#9ca3af}
+
+/* School toggle buttons */
+.school-pills{display:flex;gap:6px;flex-wrap:wrap;padding:10px 28px;background:#fff;border-bottom:1px solid #f3f4f6;align-items:center}
+.school-toggle{font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;border:2px solid transparent;cursor:pointer;transition:all .15s;user-select:none;display:flex;align-items:center;gap:5px}
+.school-toggle.de{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+.school-toggle.pt{background:#fff7ed;color:#c2410c;border-color:#fed7aa}
+.school-toggle.off{background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb;text-decoration:line-through;opacity:.6}
+.school-toggle:hover{filter:brightness(.95)}
+.pills-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-right:2px}
+
+.main{padding:20px 28px;max-width:1700px;margin:0 auto}
+
+/* Section headers */
+.section-header{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+.section-header::after{content:'';flex:1;height:1px;background:#e5e7eb}
+
+/* Cards */
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
+.card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;padding:12px 18px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between}
+
+/* Summary tables */
+.sum-table{width:100%;border-collapse:collapse;font-size:12px}
+.sum-table th{padding:8px 14px;background:#f8fafc;color:#6b7280;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.06em;text-align:right;border-bottom:2px solid #e5e7eb;white-space:nowrap}
+.sum-table th:first-child{text-align:left}
+.sum-table td{padding:7px 14px;border-bottom:1px solid #f3f4f6;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sum-table td:first-child{text-align:left}
+.sum-table tr:last-child td{border-bottom:none;font-weight:800;background:#f8fafc}
+.row-main td{font-weight:700;background:#fafafa}
+.row-sub td:first-child{padding-left:28px;color:#6b7280;font-weight:400}
+.row-sub td{color:#374151}
+.row-isa td{color:#5b21b6;font-weight:600}
+.row-pap td{color:#92400e;font-weight:600}
+.row-total td{font-weight:800;background:#eff6ff;color:#1e40af}
+
+/* Progress bars */
+.pct-bar-wrap{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.pct-bar{height:6px;border-radius:3px;display:inline-block;min-width:2px;max-width:80px}
+.pct-val{font-size:11px;font-variant-numeric:tabular-nums;min-width:38px;text-align:right}
+
+/* Per-school breakdown */
+.school-breakdown{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:16px}
+.school-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px}
+.school-card .sc-name{font-size:11px;font-weight:700;color:#374151;margin-bottom:2px;display:flex;align-items:center;gap:5px}
+.school-card .sc-flag{font-size:13px}
+.school-card .sc-n{font-size:22px;font-weight:800;color:#111827;line-height:1;margin:6px 0 2px}
+.school-card .sc-amt{font-size:12px;color:#6b7280}
+.school-card .sc-bar{height:3px;border-radius:2px;background:#e5e7eb;margin-top:8px}
+.school-card .sc-bar-fill{height:3px;border-radius:2px}
+
+/* Charts */
+.charts-4{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.chart-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px 18px}
+.chart-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.chart-subtitle{font-size:10px;color:#9ca3af;margin-bottom:12px}
+.cw{position:relative;height:230px}
+.cw-lg{position:relative;height:260px}
+
+.toggle-group{display:flex;gap:0;background:#f3f4f6;border-radius:6px;padding:2px}
+.toggle-btn{border:none;background:none;border-radius:5px;padding:3px 10px;font-size:10px;font-weight:600;color:#6b7280;cursor:pointer;transition:all .15s}
+.toggle-btn.act{background:#fff;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+.sub-tabs{display:flex;gap:0}
+.sub-tab{border:none;background:none;border-bottom:2px solid transparent;padding:4px 10px;font-size:11px;font-weight:500;color:#9ca3af;cursor:pointer}
+.sub-tab.act{color:#1d4ed8;border-bottom-color:#1d4ed8;font-weight:700}
+
+/* KPI cards */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px}
+.kpi .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:6px}
+.kpi .val{font-size:22px;font-weight:800;color:#111827;line-height:1}
+.kpi .hint{font-size:10px;color:#9ca3af;margin-top:4px}
+.kpi.green .val{color:#059669}
+.kpi.red .val{color:#dc2626}
+.kpi.blue .val{color:#1d4ed8}
+
+/* Charts existing */
+.charts-row{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.charts-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.cw-sm{position:relative;height:200px}
+
+/* Payin */
+.payin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.payin-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px}
+.payin-card .pt{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:6px}
+.payin-card .pv{font-size:20px;font-weight:800;color:#111827}
+.payin-card .psub{font-size:11px;color:#6b7280;margin-top:3px}
+
+/* Loan table */
+.section{background:#fff;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:16px;overflow:hidden}
+.sec-head{padding:12px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.sec-title{font-size:13px;font-weight:700;color:#111827;display:flex;align-items:center;gap:8px}
+.sec-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.sec-badge.b{background:#dbeafe;color:#1d4ed8}
+.filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.filters select,.filters input{border:1px solid #e5e7eb;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff;color:#374151;outline:none}
+.filters select:focus,.filters input:focus{border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(29,78,216,.08)}
+.filters input{min-width:180px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 14px;background:#f9fafb;color:#6b7280;font-weight:700;border-bottom:1px solid #e5e7eb;font-size:10px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+th.r{text-align:right}
+td{padding:8px 14px;border-bottom:1px solid #f3f4f6;color:#374151;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.r{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f9fafb}
+.pager{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-top:1px solid #e5e7eb;font-size:11px;color:#6b7280}
+.pager-btns{display:flex;gap:6px}
+.pager-btn{background:#fff;border:1px solid #e5e7eb;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;color:#374151;cursor:pointer}
+.pager-btn:hover{background:#f9fafb}
+.pager-btn:disabled{opacity:.4;cursor:default}
+.tbar{display:flex;gap:0;border-bottom:1px solid #e5e7eb;padding:0 18px}
+.tab{background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;padding:9px 16px;font-size:12px;font-weight:500;color:#6b7280;cursor:pointer}
+.tab:hover{color:#111827}
+.tab.act{color:#1d4ed8;border-bottom-color:#1d4ed8;font-weight:700}
+.st{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap}
+.st-amortization_not_started{background:#dbeafe;color:#1d4ed8}
+.st-amortization_in_process{background:#d1fae5;color:#065f46}
+.st-amortization_stalled{background:#fef3c7;color:#92400e}
+.st-closed_lost{background:#f1f5f9;color:#64748b}
+.st-prepaid{background:#f0fdf4;color:#15803d}
+.st-withdrawal{background:#f1f5f9;color:#64748b}
+.st-request_rejected{background:#fee2e2;color:#991b1b}
+.st-default_asnef{background:#fce7f3;color:#9d174d}
+.st-default_delinquency_warning{background:#fed7aa;color:#9a3412}
+.st-pending_sign{background:#f0f9ff;color:#0369a1}
+.st-condoned{background:#f3f4f6;color:#6b7280}
+.st-amortized{background:#d1fae5;color:#065f46}
+.ty{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700}
+.ty-isa{background:#ede9fe;color:#5b21b6}
+.ty-installment_payments{background:#fef3c7;color:#92400e}
+.loading{text-align:center;padding:40px;color:#9ca3af;font-size:13px}
+.spin{display:inline-block;width:18px;height:18px;border:2px solid #e5e7eb;border-top-color:#1d4ed8;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:28px;color:#9ca3af;font-size:12px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">DE</div>
+    <div>
+      <h1>Germany Portfolio · BCAS</h1>
+      <div class="sub">Connected to BCAS DB · multiple schools</div>
+    </div>
+    <span class="badge" id="dbBadge">Loading...</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span class="last-update" id="lastUpdate"></span>
+    <button class="refresh-btn" id="exportBtn" onclick="downloadExcel()">&#8595; Excel</button>
+    <button class="refresh-btn" onclick="loadAll()">&#8635; Refresh</button>
+  </div>
+</div>
+
+<!-- School toggle buttons -->
+<div class="school-pills" id="schoolPills"></div>
+
+<div class="main">
+
+  <!-- ── PER-SCHOOL BREAKDOWN ────────────────────────────────────────────── -->
+  <div class="section-header">Summary by school</div>
+  <div class="school-breakdown" id="schoolBreakdown">
+    <div class="loading"><span class="spin"></span>Loading...</div>
+  </div>
+
+  <!-- ── KPI SUMMARY TABLES ─────────────────────────────────────────────── -->
+  <div class="section-header">Aggregated portfolio summary</div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">Summary table · Absolute values</div>
+    <div id="summaryTableAbs" style="overflow-x:auto">
+      <div class="loading"><span class="spin"></span>Loading...</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Summary table · % of total</div>
+    <div id="summaryTablePct" style="overflow-x:auto">
+      <div class="loading"><span class="spin"></span>Loading...</div>
+    </div>
+  </div>
+
+  <!-- ── PIE CHARTS ──────────────────────────────────────────────────────── -->
+  <div class="section-header">Portfolio distribution</div>
+
+  <div class="charts-4">
+    <div class="chart-card">
+      <div class="chart-title">
+        1 · ISA vs PaP split
+        <div class="sub-tabs">
+          <button class="sub-tab act" id="c1tabN" onclick="switchC1('n')"># Students</button>
+          <button class="sub-tab" id="c1tabE" onclick="switchC1('e')">Total financed</button>
+        </div>
+      </div>
+      <div class="chart-subtitle">Distribution of total loans granted</div>
+      <div class="cw"><canvas id="chart1"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">
+        2 · Total collected vs Pending collection
+        <div class="toggle-group">
+          <button class="toggle-btn act" id="c2togAll" onclick="switchC2('all')">Total</button>
+          <button class="toggle-btn" id="c2togIsa" onclick="switchC2('isa')">ISA</button>
+          <button class="toggle-btn" id="c2togPap" onclick="switchC2('pap')">PaP</button>
+        </div>
+      </div>
+      <div class="chart-subtitle">Amount collected vs outstanding balance</div>
+      <div class="cw"><canvas id="chart2"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">
+        3 · Total disbursed vs Pending disbursement
+        <div class="toggle-group">
+          <button class="toggle-btn act" id="c3togAll" onclick="switchC3('all')">Total</button>
+          <button class="toggle-btn" id="c3togIsa" onclick="switchC3('isa')">ISA</button>
+          <button class="toggle-btn" id="c3togPap" onclick="switchC3('pap')">PaP</button>
+        </div>
+      </div>
+      <div class="chart-subtitle">Capital disbursed vs pending disbursement</div>
+      <div class="cw"><canvas id="chart3"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">4 · Status distribution (# students)</div>
+      <div class="chart-subtitle">Fully repaid · In repayment · In default · Not started</div>
+      <div class="cw"><canvas id="chart4"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ── POR ESCUELA: financiado chart ─────────────────────────────────── -->
+  <div class="section-header">Detail by school</div>
+  <div class="charts-row2">
+    <div class="card" style="padding:16px 18px">
+      <div class="card-title">Total financed by school</div>
+      <div class="cw-lg"><canvas id="schoolFinChart"></canvas></div>
+    </div>
+    <div class="card" style="padding:16px 18px">
+      <div class="card-title">Monthly evolution (concessions)</div>
+      <div class="cw-lg"><canvas id="monthlyChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ── KPI CARDS ─────────────────────────────────────────────────────── -->
+  <div class="kpis" id="kpis">
+    <div class="kpi"><div class="lbl">Total Ops</div><div class="val"><span class="spin"></span></div></div>
+    <div class="kpi"><div class="lbl">Total Financed</div><div class="val">...</div></div>
+    <div class="kpi"><div class="lbl">Active Portfolio</div><div class="val">...</div></div>
+    <div class="kpi"><div class="lbl">Outstanding Balance</div><div class="val">...</div></div>
+    <div class="kpi"><div class="lbl">In Repayment</div><div class="val">...</div></div>
+    <div class="kpi red"><div class="lbl">In Default</div><div class="val">...</div></div>
+  </div>
+
+  <!-- ── PAYIN ──────────────────────────────────────────────────────────── -->
+  <div class="payin-grid" id="payinCards">
+    <div class="payin-card"><div class="pt">Payments collected</div><div class="pv">...</div><div class="psub">periodic + simple</div></div>
+    <div class="payin-card"><div class="pt">Pending collection</div><div class="pv">...</div></div>
+    <div class="payin-card"><div class="pt">In collection</div><div class="pv" style="color:#dc2626">...</div></div>
+    <div class="payin-card"><div class="pt">Failed</div><div class="pv" style="color:#dc2626">...</div></div>
+  </div>
+
+  <!-- ── LOAN TABLE ─────────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="sec-head">
+      <div class="sec-title">
+        Loan detail
+        <span class="sec-badge b" id="tableCount">—</span>
+      </div>
+      <div class="filters">
+        <select id="fSchool" onchange="loadLoans(1)">
+          <option value="all">All schools</option>
+          <option value="243">Ironhack Germany</option>
+          <option value="244">Code University</option>
+          <option value="287">Le Wagon (GER)</option>
+          <option value="208">Tomorrow</option>
+          <option value="412">Ironhack Portugal</option>
+        </select>
+        <select id="fType" onchange="loadLoans(1)">
+          <option value="all">All types</option>
+          <option value="isa">ISA</option>
+          <option value="installment_payments">PaP</option>
+        </select>
+        <select id="fStatus" onchange="loadLoans(1)">
+          <option value="all">All statuses</option>
+          <option value="amortization_not_started">Not started</option>
+          <option value="amortization_in_process">In repayment</option>
+          <option value="amortization_stalled">Repayment stalled</option>
+          <option value="prepaid">Prepaid</option>
+          <option value="default_asnef">Default ASNEF</option>
+          <option value="default_delinquency_warning">Default delinquency</option>
+          <option value="withdrawal">Withdrawn</option>
+          <option value="condoned">Condoned</option>
+          <option value="amortized">Amortized</option>
+        </select>
+        <input id="fSearch" type="text" placeholder="Search email / ID / course..." oninput="debSearch()" />
+      </div>
+    </div>
+    <div id="tableBody"></div>
+    <div class="pager" id="pager" style="display:none">
+      <span id="pagerInfo"></span>
+      <div class="pager-btns">
+        <button class="pager-btn" id="btnPrev" onclick="loadLoans(currentPage-1)">&#8592; Previous</button>
+        <button class="pager-btn" id="btnNext" onclick="loadLoans(currentPage+1)">Next &#8594;</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = (window.location.pathname.startsWith('/escuelas') ? '/escuelas/cartera-alemania' : '');
+const SCHOOL_NAMES = { 243:'Ironhack Germany', 244:'Code University', 287:'Le Wagon (GER)', 208:'Tomorrow', 412:'Ironhack Portugal' };
+const SCHOOL_FLAGS = { 243:'🇩🇪', 244:'🇩🇪', 287:'🇩🇪', 208:'🇩🇪', 412:'🇵🇹' };
+const SCHOOL_COLORS = { 243:'#1d4ed8', 244:'#7c3aed', 287:'#059669', 208:'#0891b2', 412:'#ea580c' };
+const DE_IDS = [243,244,287,208];
+const PT_ID  = 412;
+
+const STATUS_LABEL = {
+  amortization_not_started:'Not started', amortization_in_process:'In repayment',
+  amortization_stalled:'Repayment stalled', closed_lost:'Lost', prepaid:'Prepaid',
+  withdrawal:'Withdrawn', request_rejected:'Rejected', default_asnef:'Default ASNEF',
+  default_delinquency_warning:'Default delinquency', pending_sign:'Pending signature',
+  condoned:'Condoned', amortized:'Amortized',
+};
+
+function fmt(n){
+  if(n===null||n===undefined)return'—';
+  const v=parseFloat(n);if(isNaN(v))return'—';
+  if(Math.abs(v)>=1e6)return'€'+(v/1e6).toFixed(2)+'M';
+  if(Math.abs(v)>=1e3)return'€'+Math.round(v).toLocaleString('en-GB');
+  return'€'+v.toFixed(0);
+}
+function fmtN(n){if(!n&&n!==0)return'0';return parseInt(n).toLocaleString('en-GB');}
+function fmtDate(d){if(!d)return'—';return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'});}
+
+let charts={};
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+async function apiFetch(p){const r=await fetch(API+p);if(!r.ok)throw new Error(await r.text());return r.json();}
+
+let activeSet = new Set([...DE_IDS, PT_ID]); // all on by default
+let rawSummary = null, rawBySchool = null, rawStatus = null, rawMonthly = null, rawPayins = null;
+let c1Mode='n', c2Mode='all', c3Mode='all';
+
+function activeSchools(){ return [...activeSet]; }
+
+function buildPills(){
+  const wrap = document.getElementById('schoolPills');
+  const entries = [
+    ...DE_IDS.map(id => ({id, cls:'de'})),
+    {id: PT_ID, cls:'pt'},
+  ];
+  wrap.innerHTML = '<span class="pills-label">Schools</span>' +
+    entries.map(({id, cls}) => {
+      const on = activeSet.has(id);
+      return `<button class="school-toggle ${cls}${on?'':' off'}" onclick="toggleSchool(${id})" title="${on?'Exclude':'Include'}">${SCHOOL_FLAGS[id]} ${SCHOOL_NAMES[id]}</button>`;
+    }).join('');
+}
+
+function toggleSchool(id){
+  if(activeSet.has(id)){
+    if(activeSet.size <= 1) return; // keep at least one
+    activeSet.delete(id);
+  } else {
+    activeSet.add(id);
+  }
+  buildPills();
+  if(rawSummary) redrawAll();
+  loadLoans(1);
+}
+
+// ── Aggregate helpers ─────────────────────────────────────────────────────────
+function aggRows(rows, filterFn){
+  const f=rows.filter(filterFn);
+  return {
+    n:f.reduce((s,r)=>s+parseInt(r.n||0),0),
+    financed:f.reduce((s,r)=>s+parseFloat(r.financed||0),0),
+    disbursed:f.reduce((s,r)=>s+parseFloat(r.disbursed||0),0),
+    pte_desembolso:f.reduce((s,r)=>s+parseFloat(r.pte_desembolso||0),0),
+    recobrado:f.reduce((s,r)=>s+parseFloat(r.recobrado||0),0),
+    pte_recobro:f.reduce((s,r)=>s+parseFloat(r.pte_recobro||0),0),
+  };
+}
+
+function buildSummary(rows){
+  const active = activeSchools();
+  const R = rows.filter(r=>active.includes(parseInt(r.school_id)));
+  const all      = aggRows(R,()=>true);
+  const desist   = aggRows(R,r=>r.loan_status==='withdrawal');
+  const condon   = aggRows(R,r=>r.loan_status==='condoned');
+  const isa      = aggRows(R,r=>r.loan_type==='isa');
+  const pap      = aggRows(R,r=>r.loan_type==='installment_payments');
+  const amortTot = aggRows(R,r=>['prepaid','amortized'].includes(r.loan_status));
+  const amortA   = aggRows(R,r=>r.loan_status==='prepaid');
+  const amortR   = aggRows(R,r=>r.loan_status==='amortized');
+  const enAmort  = aggRows(R,r=>['amortization_in_process','amortization_stalled'].includes(r.loan_status));
+  const enDef    = aggRows(R,r=>['default_asnef','default_delinquency_warning'].includes(r.loan_status));
+  const noEmp    = aggRows(R,r=>r.loan_status==='amortization_not_started');
+  return {all,desist,condon,isa,pap,amortTot,amortA,amortR,enAmort,enDef,noEmp};
+}
+
+// ── Summary tables ───────────────────────────────────────────────────────────
+function renderSummaryAbs(rows){
+  const d=buildSummary(rows);
+  function row(label,cls,dat){return`<tr class="${cls}">
+    <td>${label}</td><td>${fmtN(dat.n)}</td><td>${fmt(dat.financed)}</td>
+    <td>${fmt(dat.recobrado)}</td><td>${fmt(dat.pte_recobro)}</td>
+    <td>${fmt(dat.disbursed)}</td><td>${fmt(dat.pte_desembolso)}</td></tr>`;}
+  document.getElementById('summaryTableAbs').innerHTML=`<table class="sum-table">
+    <thead><tr>
+      <th style="width:230px;text-align:left">Category</th>
+      <th># Students</th><th>Total Financed</th><th>Total Collected (€)</th>
+      <th>Pending Collection (€)</th><th>Total Disbursed (€)</th><th>Pending Disbursement (€)</th>
+    </tr></thead>
+    <tbody>
+      ${row('1. Total loans granted','row-main',d.all)}
+      ${row('&nbsp;&nbsp;&nbsp;1.1 Withdrawals','row-sub',d.desist)}
+      ${row('&nbsp;&nbsp;&nbsp;1.2 Condoned','row-sub',d.condon)}
+      ${row('2. ISA','row-isa',d.isa)}
+      ${row('3. PaP','row-pap',d.pap)}
+      ${row('4. Total repaid','row-main',d.amortTot)}
+      ${row('&nbsp;&nbsp;&nbsp;4.1 Early repaid','row-sub',d.amortA)}
+      ${row('&nbsp;&nbsp;&nbsp;4.2 Fully amortized','row-sub',d.amortR)}
+      ${row('5. In repayment','row-main',d.enAmort)}
+      ${row('6. Loans in Default','row-main',d.enDef)}
+      ${row('7. Not started repayment','row-main',d.noEmp)}
+      ${row('TOTAL','row-total',d.all)}
+    </tbody></table>`;
+}
+
+function pctBar(val,total,color){
+  if(!total||!val)return`<span class="pct-val">—</span>`;
+  const pct=(val/total*100);
+  const w=Math.min(80,Math.round(pct*0.8));
+  return`<div class="pct-bar-wrap"><span class="pct-val">${pct.toFixed(1)}%</span><span class="pct-bar" style="width:${w}px;background:${color}"></span></div>`;
+}
+
+function renderSummaryPct(rows){
+  const d=buildSummary(rows);const T=d.all;
+  function row(label,cls,dat,color){return`<tr class="${cls}">
+    <td>${label}</td><td>${fmtN(dat.n)}</td><td>${pctBar(dat.n,T.n,color)}</td>
+    <td>${fmt(dat.financed)}</td><td>${pctBar(dat.financed,T.financed,color)}</td>
+    <td>${fmt(dat.recobrado)}</td></tr>`;}
+  document.getElementById('summaryTablePct').innerHTML=`<table class="sum-table">
+    <thead><tr>
+      <th style="width:230px;text-align:left">Category</th>
+      <th># Students</th><th>% Total</th><th>Total Financed</th><th>% Total</th><th>Total Collected (€)</th>
+    </tr></thead>
+    <tbody>
+      ${row('1. Total loans granted','row-main',d.all,'#1d4ed8')}
+      ${row('&nbsp;&nbsp;&nbsp;1.1 Withdrawals','row-sub',d.desist,'#94a3b8')}
+      ${row('&nbsp;&nbsp;&nbsp;1.2 Condoned','row-sub',d.condon,'#94a3b8')}
+      ${row('2. ISA','row-isa',d.isa,'#7c3aed')}
+      ${row('3. PaP','row-pap',d.pap,'#f59e0b')}
+      ${row('4. Total repaid','row-main',d.amortTot,'#059669')}
+      ${row('&nbsp;&nbsp;&nbsp;4.1 Early repaid','row-sub',d.amortA,'#059669')}
+      ${row('&nbsp;&nbsp;&nbsp;4.2 Fully amortized','row-sub',d.amortR,'#059669')}
+      ${row('5. In repayment','row-main',d.enAmort,'#1d4ed8')}
+      ${row('6. Loans in Default','row-main',d.enDef,'#ef4444')}
+      ${row('7. Not started repayment','row-main',d.noEmp,'#60a5fa')}
+      ${row('TOTAL','row-total',d.all,'#1e40af')}
+    </tbody></table>`;
+}
+
+// ── Pie charts ────────────────────────────────────────────────────────────────
+function makePie(id,labels,data,colors,currency=false){
+  destroyChart(id);
+  charts[id]=new Chart(document.getElementById(id),{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:10,boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>{
+          const val=ctx.parsed,total=ctx.dataset.data.reduce((a,b)=>a+b,0);
+          const pct=total?(val/total*100).toFixed(1):'0';
+          return currency?` ${fmt(val)} (${pct}%)`:`  ${fmtN(val)} (${pct}%)`;
+        }}}}}
+  });
+}
+
+function renderChart1(rows){
+  const d=buildSummary(rows);
+  if(c1Mode==='n') makePie('chart1',['ISA','PaP'],[d.isa.n,d.pap.n],['#7c3aed','#f59e0b']);
+  else makePie('chart1',['ISA','PaP'],[d.isa.financed,d.pap.financed],['#7c3aed','#f59e0b'],true);
+}
+function renderChart2(rows){
+  const d=buildSummary(rows);
+  const src=c2Mode==='isa'?d.isa:c2Mode==='pap'?d.pap:d.all;
+  makePie('chart2',['Total Collected','Pending Collection'],[src.recobrado,src.pte_recobro],['#1d4ed8','#e5e7eb'],true);
+}
+function renderChart3(rows){
+  const d=buildSummary(rows);
+  const src=c3Mode==='isa'?d.isa:c3Mode==='pap'?d.pap:d.all;
+  makePie('chart3',['Total Disbursed','Pending Disbursement'],[src.disbursed,src.pte_desembolso],['#1d4ed8','#bfdbfe'],true);
+}
+function renderChart4(rows){
+  const d=buildSummary(rows);
+  makePie('chart4',
+    ['Total repaid','In repayment','In Default','Not started'],
+    [d.amortTot.n,d.enAmort.n,d.enDef.n,d.noEmp.n],
+    ['#059669','#1d4ed8','#ef4444','#60a5fa']);
+}
+
+function switchC1(m){c1Mode=m;document.getElementById('c1tabN').classList.toggle('act',m==='n');document.getElementById('c1tabE').classList.toggle('act',m==='e');if(rawSummary)renderChart1(rawSummary);}
+function switchC2(m){c2Mode=m;['All','Isa','Pap'].forEach(x=>document.getElementById('c2tog'+x).classList.remove('act'));document.getElementById('c2tog'+m.charAt(0).toUpperCase()+m.slice(1)).classList.add('act');if(rawSummary)renderChart2(rawSummary);}
+function switchC3(m){c3Mode=m;['All','Isa','Pap'].forEach(x=>document.getElementById('c3tog'+x).classList.remove('act'));document.getElementById('c3tog'+m.charAt(0).toUpperCase()+m.slice(1)).classList.add('act');if(rawSummary)renderChart3(rawSummary);}
+
+function redrawAll(){
+  renderSummaryAbs(rawSummary);
+  renderSummaryPct(rawSummary);
+  renderChart1(rawSummary);
+  renderChart2(rawSummary);
+  renderChart3(rawSummary);
+  renderChart4(rawSummary);
+  renderSchoolFinChart(rawBySchool);
+  renderMonthlyChart(rawMonthly);
+  renderPayinSummary(rawPayins);
+  renderKpis();
+}
+
+// ── School breakdown cards ────────────────────────────────────────────────────
+function renderSchoolBreakdown(rows){
+  const active=activeSchools();
+  const filtered=rows.filter(r=>active.includes(parseInt(r.school_id)));
+  const maxFin=Math.max(...filtered.map(r=>parseFloat(r.financed)));
+  document.getElementById('schoolBreakdown').innerHTML=filtered.map(r=>{
+    const id=parseInt(r.school_id);
+    const pct=maxFin?Math.round(parseFloat(r.financed)/maxFin*100):0;
+    const isPt=id===PT_ID;
+    return`<div class="school-card">
+      <div class="sc-name"><span class="sc-flag">${SCHOOL_FLAGS[id]||''}</span>${SCHOOL_NAMES[id]||id}</div>
+      <div class="sc-n">${fmtN(r.n)}</div>
+      <div class="sc-amt">${fmt(r.financed)} financed</div>
+      <div style="font-size:10px;color:#9ca3af;margin-top:3px">
+        Default: ${fmtN(r.en_default)} · In repayment: ${fmtN(r.en_amortizacion)}
+      </div>
+      <div class="sc-bar"><div class="sc-bar-fill" style="width:${pct}%;background:${isPt?'#ea580c':SCHOOL_COLORS[id]}"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// ── School financed chart ─────────────────────────────────────────────────────
+function renderSchoolFinChart(rows){
+  const active=activeSchools();
+  const filtered=rows.filter(r=>active.includes(parseInt(r.school_id)));
+  const labels=filtered.map(r=>SCHOOL_NAMES[parseInt(r.school_id)]||r.school_id);
+  const data=filtered.map(r=>parseFloat(r.financed));
+  const colors=filtered.map(r=>SCHOOL_COLORS[parseInt(r.school_id)]||'#94a3b8');
+  destroyChart('schoolFin');
+  charts.schoolFin=new Chart(document.getElementById('schoolFinChart'),{
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${fmt(ctx.parsed.x)}`}}},
+      scales:{x:{ticks:{font:{size:9},callback:v=>'€'+(v/1000).toFixed(0)+'k'},grid:{color:'#f3f4f6'}},
+              y:{grid:{display:false},ticks:{font:{size:11}}}}}
+  });
+}
+
+// ── Monthly chart ─────────────────────────────────────────────────────────────
+function renderMonthlyChart(rows){
+  const active=activeSchools();
+  const filtered=rows.filter(r=>active.includes(parseInt(r.school_id)));
+  const months=[...new Set(filtered.map(r=>r.month))].sort();
+
+  // Aggregate per school per month
+  const datasets=Object.entries(SCHOOL_NAMES)
+    .filter(([id])=>active.includes(parseInt(id)))
+    .map(([id,name])=>{
+      const data=months.map(m=>{
+        const r=filtered.find(x=>x.month===m&&parseInt(x.school_id)===parseInt(id));
+        return r?parseFloat(r.amount):0;
+      });
+      return{label:name,data,backgroundColor:SCHOOL_COLORS[parseInt(id)],borderRadius:2,stack:'s'};
+    });
+
+  destroyChart('monthly');
+  charts.monthly=new Chart(document.getElementById('monthlyChart'),{
+    type:'bar',data:{labels:months.map(m=>m.slice(2)),datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:9},padding:6,boxWidth:9}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:9}}},
+              y:{stacked:true,ticks:{font:{size:9},callback:v=>'€'+(v/1000).toFixed(0)+'k'},grid:{color:'#f3f4f6'}}}}
+  });
+}
+
+// ── KPI cards (derived from rawSummary + rawBySchool) ─────────────────────────
+function renderKpis(){
+  if(!rawSummary||!rawBySchool)return;
+  const d=buildSummary(rawSummary);
+  const active=activeSchools();
+  const schoolRows=rawBySchool.filter(r=>active.includes(parseInt(r.school_id)));
+  const saldoVivo=schoolRows.reduce((s,r)=>s+parseFloat(r.outstanding||0),0);
+  const enAmort=d.enAmort.n, enDef=d.enDef.n;
+  const carteraViva=d.all.n-d.desist.n-d.condon.n-d.amortTot.n;
+  const pct=d.all.n?(carteraViva/d.all.n*100).toFixed(1)+'% of total':'';
+  const avgTicket=d.all.n?d.all.financed/d.all.n:0;
+
+  document.getElementById('kpis').innerHTML=`
+    <div class="kpi blue"><div class="lbl">Total Ops</div><div class="val">${fmtN(d.all.n)}</div><div class="hint">ISA: ${fmtN(d.isa.n)} · PaP: ${fmtN(d.pap.n)}</div></div>
+    <div class="kpi"><div class="lbl">Total Financed</div><div class="val">${fmt(d.all.financed)}</div><div class="hint">Avg ticket: ${fmt(avgTicket)}</div></div>
+    <div class="kpi green"><div class="lbl">Active Portfolio</div><div class="val">${fmtN(carteraViva)}</div><div class="hint">${pct}</div></div>
+    <div class="kpi"><div class="lbl">Outstanding Balance</div><div class="val">${fmt(saldoVivo)}</div><div class="hint">outstanding balance</div></div>
+    <div class="kpi green"><div class="lbl">In Repayment</div><div class="val">${fmtN(enAmort)}</div><div class="hint">in process + stalled</div></div>
+    <div class="kpi ${enDef>0?'red':''}"><div class="lbl">In Default</div><div class="val">${fmtN(enDef)}</div><div class="hint">ASNEF + delinquency</div></div>
+  `;
+  document.getElementById('dbBadge').textContent='Live DB';
+}
+
+// ── Payin summary ─────────────────────────────────────────────────────────────
+function renderPayinSummary(rows){
+  const active=activeSchools();
+  const filtered=rows.filter(r=>active.includes(parseInt(r.school_id)));
+  const paid=filtered.filter(r=>r.payin_status==='paid').reduce((s,r)=>s+parseFloat(r.total),0);
+  const pending=filtered.filter(r=>r.payin_status==='pending').reduce((s,r)=>s+parseFloat(r.total),0);
+  const claimed=filtered.filter(r=>r.payin_status==='claimed').reduce((s,r)=>s+parseFloat(r.total),0);
+  const failed=filtered.filter(r=>['failed','cancelled'].includes(r.payin_status)).reduce((s,r)=>s+parseFloat(r.total),0);
+  document.getElementById('payinCards').innerHTML=`
+    <div class="payin-card"><div class="pt">Payments collected</div><div class="pv" style="color:#059669">${fmt(paid)}</div><div class="psub">periodic + simple</div></div>
+    <div class="payin-card"><div class="pt">Pending collection</div><div class="pv">${fmt(pending)}</div><div class="psub">scheduled</div></div>
+    <div class="payin-card"><div class="pt">In collection</div><div class="pv" style="color:#dc2626">${fmt(claimed)}</div><div class="psub">claimed</div></div>
+    <div class="payin-card"><div class="pt">Failed / cancelled</div><div class="pv" style="color:#dc2626">${fmt(failed)}</div><div class="psub">failed + cancelled</div></div>
+  `;
+}
+
+// ── Loan table ─────────────────────────────────────────────────────────────────
+let currentPage=1, searchTimer=null;
+function debSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadLoans(1),350);}
+
+async function loadLoans(page){
+  currentPage=page||1;
+  const schoolSel=document.getElementById('fSchool').value;
+  const type=document.getElementById('fType').value;
+  const status=document.getElementById('fStatus').value;
+  const search=document.getElementById('fSearch').value.trim();
+  const params=new URLSearchParams({page:currentPage,size:50});
+  if(schoolSel!=='all')params.set('school_id',schoolSel);
+  if(type!=='all')params.set('loan_type',type);
+  if(status!=='all')params.set('loan_status',status);
+  if(search)params.set('search',search);
+  document.getElementById('tableBody').innerHTML='<div class="loading"><span class="spin"></span>Loading loans...</div>';
+  const d=await apiFetch('/api/loans?'+params);
+  document.getElementById('tableCount').textContent=fmtN(d.total)+' loans';
+  if(!d.rows.length){document.getElementById('tableBody').innerHTML='<div class="empty">No results</div>';document.getElementById('pager').style.display='none';return;}
+  const rows=d.rows.map(r=>`<tr>
+    <td>${r.loan_id}</td>
+    <td style="font-size:10px;color:#9ca3af">${SCHOOL_FLAGS[parseInt(r.school_id)]||''} ${SCHOOL_NAMES[parseInt(r.school_id)]||r.school_id}</td>
+    <td style="max-width:180px">${r.email||'—'}</td>
+    <td><span class="ty ty-${r.loan_type}">${r.loan_type==='isa'?'ISA':'PaP'}</span></td>
+    <td><span class="st st-${r.loan_status}">${STATUS_LABEL[r.loan_status]||r.loan_status}</span></td>
+    <td style="max-width:180px">${r.course||'—'}</td>
+    <td class="r">${fmt(r.total_amount_financed)}</td>
+    <td class="r">${fmt(r.total_disbursement)}</td>
+    <td class="r">${fmt(r.total_outstanding_balance)}</td>
+    <td>${fmtDate(r.concession_date)}</td>
+  </tr>`).join('');
+  document.getElementById('tableBody').innerHTML=`<table><thead><tr>
+    <th>ID</th><th>School</th><th>Email</th><th>Type</th><th>Status</th><th>Course</th>
+    <th class="r">Financed</th><th class="r">Disbursed</th><th class="r">Outstanding</th><th>Concession date</th>
+  </tr></thead><tbody>${rows}</tbody></table>`;
+  const total=d.total,from=(currentPage-1)*d.size+1,to=Math.min(currentPage*d.size,total),tp=Math.ceil(total/d.size);
+  document.getElementById('pager').style.display='flex';
+  document.getElementById('pagerInfo').textContent=`Showing ${from}–${to} of ${fmtN(total)}`;
+  document.getElementById('btnPrev').disabled=currentPage<=1;
+  document.getElementById('btnNext').disabled=currentPage>=tp;
+}
+
+// ── Excel export ──────────────────────────────────────────────────────────────
+async function downloadExcel() {
+  const btn = document.getElementById('exportBtn');
+  btn.textContent = '⏳ Generating...';
+  btn.disabled = true;
+  try {
+    const [loansData, bySchool] = await Promise.all([
+      apiFetch('/api/loans?' + new URLSearchParams({page:1,size:9999})),
+      apiFetch('/api/by-school'),
+    ]);
+    const active = activeSchools();
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Summary by school
+    const schoolSheet = bySchool
+      .filter(r => active.includes(parseInt(r.school_id)))
+      .map(r => ({
+        'School':                SCHOOL_NAMES[parseInt(r.school_id)] || r.school_id,
+        'Country':               parseInt(r.school_id) === PT_ID ? 'Portugal' : 'Germany',
+        '# Loans':               parseInt(r.n),
+        'Total Financed (€)':    +parseFloat(r.financed||0).toFixed(2),
+        'Total Collected (€)':   +parseFloat(r.recobrado||0).toFixed(2),
+        'Outstanding Balance (€)':+parseFloat(r.outstanding||0).toFixed(2),
+        'In Repayment':          parseInt(r.en_amortizacion||0),
+        'In Default':            parseInt(r.en_default||0),
+      }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(schoolSheet), 'Summary by school');
+
+    // Sheet 2: KPI Summary
+    if (rawSummary) {
+      const d = buildSummary(rawSummary);
+      const rows = [
+        ['1. Total loans granted',          d.all],
+        ['  1.1 Withdrawals',               d.desist],
+        ['  1.2 Condoned',                  d.condon],
+        ['2. ISA',                          d.isa],
+        ['3. PaP',                          d.pap],
+        ['4. Total repaid',                 d.amortTot],
+        ['  4.1 Early repaid',              d.amortA],
+        ['  4.2 Fully amortized',           d.amortR],
+        ['5. In repayment',                 d.enAmort],
+        ['6. Loans in Default',             d.enDef],
+        ['7. Not started repayment',        d.noEmp],
+        ['TOTAL',                           d.all],
+      ].map(([cat, v]) => ({
+        'Category':                cat,
+        '# Students':              v.n,
+        'Total Financed (€)':      +v.financed.toFixed(2),
+        'Total Collected (€)':     +v.recobrado.toFixed(2),
+        'Pending Collection (€)':  +v.pte_recobro.toFixed(2),
+        'Total Disbursed (€)':     +v.disbursed.toFixed(2),
+        'Pending Disbursement (€)':+v.pte_desembolso.toFixed(2),
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'KPI Summary');
+    }
+
+    // Sheet 3: Loan detail
+    const STATUS_EN = {
+      amortization_not_started:'Not started', amortization_in_process:'In repayment',
+      amortization_stalled:'Repayment stalled', closed_lost:'Lost', prepaid:'Prepaid',
+      withdrawal:'Withdrawn', request_rejected:'Rejected', default_asnef:'Default ASNEF',
+      default_delinquency_warning:'Default delinquency', pending_sign:'Pending signature',
+      condoned:'Condoned', amortized:'Amortized',
+    };
+    const loanSheet = loansData.rows
+      .filter(r => active.includes(parseInt(r.school_id)))
+      .map(r => ({
+        'Loan ID':                 r.loan_id,
+        'School':                  SCHOOL_NAMES[parseInt(r.school_id)] || r.school_id,
+        'Email':                   r.email || '',
+        'Type':                    r.loan_type === 'isa' ? 'ISA' : 'PaP',
+        'Status':                  STATUS_EN[r.loan_status] || r.loan_status,
+        'Course':                  r.course || '',
+        'Total Financed (€)':      +parseFloat(r.total_amount_financed||0).toFixed(2),
+        'Total Disbursed (€)':     +parseFloat(r.total_disbursement||0).toFixed(2),
+        'Outstanding Balance (€)': +parseFloat(r.total_outstanding_balance||0).toFixed(2),
+        'Concession date':         r.concession_date ? new Date(r.concession_date).toLocaleDateString('en-GB') : '',
+      }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(loanSheet), 'Loan detail');
+
+    const date = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `GermanyPortfolio_${date}.xlsx`);
+  } finally {
+    btn.textContent = '↓ Excel';
+    btn.disabled = false;
+  }
+}
+
+// ── Load all ──────────────────────────────────────────────────────────────────
+async function loadAll(){
+  document.getElementById('lastUpdate').textContent='Updating...';
+  const [summary, bySchool, status, monthly, payins] = await Promise.all([
+    apiFetch('/api/kpi-summary'),
+    apiFetch('/api/by-school'),
+    apiFetch('/api/status'),
+    apiFetch('/api/monthly'),
+    apiFetch('/api/payins'),
+  ]);
+  rawSummary=summary; rawBySchool=bySchool; rawStatus=status; rawMonthly=monthly; rawPayins=payins;
+  buildPills();
+  renderSummaryAbs(summary);
+  renderSummaryPct(summary);
+  renderChart1(summary); renderChart2(summary); renderChart3(summary); renderChart4(summary);
+  renderSchoolBreakdown(bySchool);
+  renderSchoolFinChart(bySchool);
+  renderMonthlyChart(monthly);
+  renderPayinSummary(payins);
+  renderKpis();
+  loadLoans(1);
+
+  document.getElementById('lastUpdate').textContent='Updated: '+new Date().toLocaleString('en-GB');
+}
+
+loadAll();
+</script>
+</body>
+</html>
