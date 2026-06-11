@@ -1657,15 +1657,22 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // ── Main dashboard ───────────────────────────────────────────
+  // ── Main dashboard (stale-while-revalidate) ──────────────────
+  const DASH_TTL_MS = 10 * 60 * 1000; // 10 minutes
   try {
     const cached = await readDashCache('main');
     if (cached) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      return res.end(cached.html);
+      res.end(cached.html);
+      // Refresh in background if stale
+      const age = Date.now() - new Date(cached.updated_at).getTime();
+      if (age > DASH_TTL_MS) {
+        buildDashHtml().then(html => writeDashCache('main', html)).catch(() => {});
+      }
+      return;
     }
-    // No cache yet — build live and store
+    // No cache yet — build live, store, return
     const html = await buildDashHtml();
     await writeDashCache('main', html).catch(() => {});
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
