@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Empleabilidad · BCAS</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6fa; color: #1a1d2e; font-size: 13px; }
+
+.topbar { background: white; border-bottom: 1px solid #e8eaf0; padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; }
+.topbar h1 { font-size: 16px; font-weight: 700; color: #1a1d2e; }
+.topbar .sub { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+.topbar .badge-db { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+
+.main { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+
+/* ── SUMMARY CARDS ── */
+.cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
+.card { background: white; border: 1px solid #e8eaf0; border-radius: 10px; padding: 16px 18px; }
+.card .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #9ca3af; margin-bottom: 6px; }
+.card .val { font-size: 26px; font-weight: 800; color: #1a1d2e; line-height: 1; }
+.card .val.green { color: #059669; }
+.card .val.red { color: #dc2626; }
+.card .hint { font-size: 11px; color: #9ca3af; margin-top: 5px; }
+
+/* ── RATING BOXES ── */
+.rating-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+.rbox { background: white; border: 1px solid #e8eaf0; border-radius: 10px; padding: 14px 16px; }
+.rbox-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.rbox-head .rtitle { font-size: 13px; font-weight: 700; }
+.rbox-head .rcount { font-size: 11px; color: #9ca3af; }
+.rbox-stat { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-top: 1px solid #f3f4f6; }
+.rbox-stat .rsl { font-size: 11px; color: #9ca3af; }
+.rbox-stat .rsv { font-size: 12px; font-weight: 600; }
+.rsv.ok { color: #059669; }
+.rsv.ko { color: #dc2626; }
+
+/* ── RATING PILLS ── */
+.r { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 18px; padding: 0 5px; border-radius: 4px; font-size: 10px; font-weight: 800; letter-spacing: 0.3px; }
+.r-Ap { background: #dbeafe; color: #1d4ed8; }
+.r-A  { background: #d1fae5; color: #065f46; }
+.r-B  { background: #fef3c7; color: #92400e; }
+.r-C  { background: #fee2e2; color: #991b1b; }
+.r-D  { background: #f3f4f6; color: #6b7280; }
+.r-SubD { background: #fce7f3; color: #9d174d; font-size: 9px; }
+
+/* ── SECTION TABLES ── */
+.section { background: white; border: 1px solid #e8eaf0; border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+.sec-header { padding: 14px 20px; border-bottom: 1px solid #e8eaf0; display: flex; align-items: center; gap: 10px; }
+.sec-icon { font-size: 16px; }
+.sec-title { font-size: 14px; font-weight: 700; color: #1a1d2e; }
+.sec-badge { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px; }
+.sec-badge.g { background: #d1fae5; color: #065f46; }
+.sec-badge.r { background: #fee2e2; color: #991b1b; }
+.sec-desc { font-size: 12px; color: #9ca3af; margin-left: auto; }
+
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: #f9fafb; }
+th { padding: 9px 12px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; border-bottom: 1px solid #e8eaf0; white-space: nowrap; }
+th.center { text-align: center; }
+td { padding: 9px 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafafa; }
+
+.school { font-weight: 600; color: #1a1d2e; }
+.n-val { color: #9ca3af; font-size: 12px; }
+
+.metric { display: flex; align-items: center; gap: 5px; }
+.actual { font-weight: 700; }
+.tgt { color: #c4c9d4; font-size: 11px; }
+.dp { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+.dp.pos { background: #d1fae5; color: #059669; }
+.dp.neg { background: #fee2e2; color: #dc2626; }
+.nd { color: #d1d5db; font-style: italic; font-size: 11px; }
+
+.gap-bar { display: flex; align-items: center; gap: 6px; }
+.bar-wrap { width: 60px; height: 5px; background: #f3f4f6; border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; }
+.bar-fill.pos { background: #34d399; }
+.bar-fill.neg { background: #f87171; }
+
+.imp-diff { font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px; }
+.imp-up   { background: #dbeafe; color: #1d4ed8; }
+.imp-eq   { background: #f3f4f6; color: #6b7280; }
+.imp-dn   { background: #fce7f3; color: #9d174d; }
+
+/* Column groups */
+th.g12, td.g12 { background: #f0fdf4 !important; }
+th.g24, td.g24 { background: #eff6ff !important; }
+
+.tab-nav { background: white; border-bottom: 1px solid #e8eaf0; padding: 0 32px; display: flex; gap: 0; }
+.tab-nav a { display: inline-flex; align-items: center; gap: 6px; padding: 12px 20px; font-size: 12px; font-weight: 600; color: #6b7280; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab-nav a.active { color: #1a1d2e; border-bottom-color: #6366f1; }
+.tab-nav a:hover:not(.active) { color: #1a1d2e; background: #f9fafb; }
+</style>
+</head>
+<body>
+
+<div class="tab-nav">
+  <a href="dashboard_empleabilidad.html" class="active">📈 Empleabilidad · Curva teórica</a>
+  <a href="empleabilidad_v2.html">🔬 Empleabilidad 2.0 · Comparativa métodos</a>
+</div>
+
+<div class="topbar">
+  <div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <h1>Empleabilidad · Análisis vs Curva Teórica</h1>
+      <span class="badge-db">⚠ Ratings y datos de BBDD pendientes de integración</span>
+    </div>
+    <div class="sub">Comparativa empleabilidad real vs target por rating · 12m y 24m · Escuelas con préstamos activos</div>
+  </div>
+  <div style="font-size:11px;color:#9ca3af">Datos actualizados: junio 2026</div>
+</div>
+
+<div class="main">
+  <div class="cards" id="cards"></div>
+  <div class="rating-row" id="ratingrow"></div>
+
+  <div class="section">
+    <div class="sec-header">
+      <span class="sec-icon">✅</span>
+      <span class="sec-title">Por Encima o En Línea con el Objetivo</span>
+      <span class="sec-badge g" id="cnt-above">—</span>
+      <span class="sec-desc">Empleabilidad 12m ≥ target del rating asignado</span>
+    </div>
+    <table><thead id="th-above"></thead><tbody id="tb-above"></tbody></table>
+  </div>
+
+  <div class="section">
+    <div class="sec-header">
+      <span class="sec-icon">⚠️</span>
+      <span class="sec-title">Por Debajo del Objetivo</span>
+      <span class="sec-badge r" id="cnt-below">—</span>
+      <span class="sec-desc">Empleabilidad 12m &lt; target del rating asignado · ordenadas por mayor brecha</span>
+    </div>
+    <table><thead id="th-below"></thead><tbody id="tb-below"></tbody></table>
+  </div>
+</div>
+
+<script>
+// ── CURVA TEÓRICA (de Categorias Empleabilidad.xlsx) ─────────────────────────
+const T = {
+  12: { 'A+':90, A:80, B:70, C:60, D:50 },
+  18: { 'A+':94, A:85, B:77, C:70, D:62 },
+  24: { 'A+':95, A:90, B:85, C:80, D:75 },
+  30: { 'A+':97, A:93, B:88, C:85, D:80 },
+};
+
+// ── DATOS DE ESCUELAS (mock — pendiente BBDD) ─────────────────────────────────
+// name | rating | n | empl12 | empl24
+// null = sin dato aún
+const SCHOOLS = [
+  // A+
+  { name:'EDEM',                    rating:'A+', n:11,  empl12:90.9, empl24:97.5 },
+  { name:'Mos',                     rating:'A+', n:41,  empl12:70.7, empl24:100.0 },
+  // A
+  { name:'Hack A Boss',             rating:'A',  n:380, empl12:62.5, empl24:59.0 },
+  { name:'The Bridge',              rating:'A',  n:166, empl12:48.4, empl24:63.4 },
+  { name:'Quatermain',              rating:'A',  n:142, empl12:75.4, empl24:88.0 },
+  { name:'Assembler',               rating:'A',  n:77,  empl12:67.0, empl24:90.0 },
+  { name:'Oxygen Network España',   rating:'A',  n:20,  empl12:94.0, empl24:66.7 },
+  { name:'Pontia',                  rating:'A',  n:16,  empl12:81.3, empl24:69.2 },
+  { name:'Europeanbitech',          rating:'A',  n:11,  empl12:81.8, empl24:null  },
+  // B
+  { name:'Upgrade Hub',             rating:'B',  n:100, empl12:46.4, empl24:58.0 },
+  { name:'4geeks',                  rating:'B',  n:95,  empl12:50.8, empl24:58.0 },
+  { name:'Vomiack',                 rating:'B',  n:80,  empl12:57.3, empl24:71.4 },
+  { name:'University Of Sales',     rating:'B',  n:79,  empl12:49.4, empl24:58.3 },
+  { name:'Nuclio',                  rating:'B',  n:66,  empl12:54.2, empl24:62.5 },
+  { name:'Geekshubs',               rating:'B',  n:42,  empl12:54.8, empl24:67.6 },
+  { name:'Thepower',                rating:'B',  n:38,  empl12:39.9, empl24:66.7 },
+  { name:'Keepcoding',              rating:'B',  n:30,  empl12:53.3, empl24:53.8 },
+  { name:'Neoland',                 rating:'B',  n:17,  empl12:52.9, empl24:60.0 },
+  { name:'Codertech',               rating:'B',  n:16,  empl12:62.6, empl24:69.2 },
+  { name:'Immune',                  rating:'B',  n:16,  empl12:56.3, empl24:75.0 },
+  { name:'Product Hackers',         rating:'B',  n:10,  empl12:70.0, empl24:100.0 },
+  { name:'Reboot',                  rating:'B',  n:7,   empl12:57.1, empl24:66.7 },
+  { name:'Anti Dev',                rating:'B',  n:6,   empl12:83.3, empl24:50.0 },
+  // C
+  { name:'Gammatech',               rating:'C',  n:49,  empl12:51.0, empl24:54.8 },
+  { name:'Multioly',                rating:'C',  n:47,  empl12:53.2, empl24:65.0 },
+  { name:'Atalaib',                 rating:'C',  n:22,  empl12:54.5, empl24:61.5 },
+  { name:'Instituto Tm',            rating:'C',  n:19,  empl12:42.1, empl24:78.5 },
+  { name:'Yinus',                   rating:'C',  n:11,  empl12:90.9, empl24:60.0 },
+  { name:'Ained',                   rating:'C',  n:15,  empl12:60.0, empl24:100.0 },
+  { name:'Campsite',                rating:'C',  n:5,   empl12:60.0, empl24:90.0 },
+  // D
+  { name:'E-Com Growth Partners',   rating:'D',  n:19,  empl12:42.1, empl24:null  },
+  { name:'Stemdo',                  rating:'D',  n:17,  empl12:36.3, empl24:null  },
+  { name:'Id Bootcamps',            rating:'D',  n:7,   empl12:14.3, empl24:66.7 },
+  { name:'Founder',                 rating:'D',  n:3,   empl12:100.0,empl24:100.0 },
+];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const RATING_ORDER = ['A+','A','B','C','D'];
+
+function rCls(r) { return { 'A+':'r-Ap', A:'r-A', B:'r-B', C:'r-C', D:'r-D', 'Sub-D':'r-SubD' }[r] || 'r-D'; }
+function rPill(r) { return r ? `<span class="r ${rCls(r)}">${r}</span>` : '<span class="nd">—</span>'; }
+
+function implicitRating(val, months) {
+  if (val === null) return null;
+  const targets = T[months];
+  for (const r of RATING_ORDER) if (val >= targets[r]) return r;
+  return 'Sub-D';
+}
+
+function ratingIdx(r) {
+  const i = RATING_ORDER.indexOf(r);
+  return i === -1 ? 99 : i;
+}
+
+function impDiffBadge(assigned, implicit) {
+  if (!implicit) return '<span class="nd">—</span>';
+  const diff = ratingIdx(assigned) - ratingIdx(implicit);
+  if (diff > 0)  return `<span class="imp-up">▲ ${implicit}</span>`;
+  if (diff === 0) return `<span class="imp-eq">= ${implicit}</span>`;
+  return `<span class="imp-dn">▼ ${implicit}</span>`;
+}
+
+function deltaHtml(actual, target) {
+  if (actual === null) return '<span class="nd">s/d</span>';
+  const d = actual - target;
+  const cls = d >= 0 ? 'pos' : 'neg';
+  const bar = Math.min(Math.abs(d) / 30 * 100, 100);
+  return `<div class="gap-bar">
+    <span class="dp ${cls}">${d >= 0 ? '+' : ''}${d.toFixed(1)}pp</span>
+    <div class="bar-wrap"><div class="bar-fill ${cls}" style="width:${bar}%"></div></div>
+  </div>`;
+}
+
+function pct(v) { return v !== null ? v.toFixed(1) + '%' : '<span class="nd">s/d</span>'; }
+
+function isAbove(s) {
+  return s.empl12 !== null && s.empl12 >= T[12][s.rating];
+}
+
+// ── SPLIT ─────────────────────────────────────────────────────────────────────
+const above = SCHOOLS.filter(isAbove).sort((a, b) => {
+  const da = a.empl12 - T[12][a.rating];
+  const db = b.empl12 - T[12][b.rating];
+  return db - da;
+});
+
+const below = SCHOOLS.filter(s => !isAbove(s)).sort((a, b) => {
+  const da = a.empl12 - T[12][a.rating];
+  const db = b.empl12 - T[12][b.rating];
+  return da - db;
+});
+
+// ── TABLE HEADER ─────────────────────────────────────────────────────────────
+const THEAD = `<tr>
+  <th>Escuela</th>
+  <th>Rating</th>
+  <th style="text-align:right">N</th>
+  <th class="g12">Empl. 12m</th>
+  <th class="g12">Target 12m</th>
+  <th class="g12">Δ 12m</th>
+  <th class="g24">Empl. 24m</th>
+  <th class="g24">Target 24m</th>
+  <th class="g24">Δ 24m</th>
+  <th>Implícito 12m</th>
+  <th>Implícito 24m</th>
+</tr>`;
+
+document.getElementById('th-above').innerHTML = THEAD;
+document.getElementById('th-below').innerHTML = THEAD;
+
+// ── BUILD ROW ─────────────────────────────────────────────────────────────────
+function buildRow(s) {
+  const t12 = T[12][s.rating], t24 = T[24][s.rating];
+  const imp12 = implicitRating(s.empl12, 12);
+  const imp24 = implicitRating(s.empl24, 24);
+  return `<tr>
+    <td><span class="school">${s.name}</span></td>
+    <td>${rPill(s.rating)}</td>
+    <td style="text-align:right"><span class="n-val">${s.n}</span></td>
+    <td class="g12"><span class="actual">${pct(s.empl12)}</span></td>
+    <td class="g12"><span class="tgt">${t12}%</span></td>
+    <td class="g12">${deltaHtml(s.empl12, t12)}</td>
+    <td class="g24"><span class="actual">${pct(s.empl24)}</span></td>
+    <td class="g24"><span class="tgt">${t24}%</span></td>
+    <td class="g24">${deltaHtml(s.empl24, t24)}</td>
+    <td>${impDiffBadge(s.rating, imp12)}</td>
+    <td>${impDiffBadge(s.rating, imp24)}</td>
+  </tr>`;
+}
+
+document.getElementById('tb-above').innerHTML = above.map(buildRow).join('');
+document.getElementById('tb-below').innerHTML = below.map(buildRow).join('');
+document.getElementById('cnt-above').textContent = above.length + ' escuelas';
+document.getElementById('cnt-below').textContent = below.length + ' escuelas';
+
+// ── SUMMARY CARDS ─────────────────────────────────────────────────────────────
+const withD12 = SCHOOLS.filter(s => s.empl12 !== null);
+const avgE12 = withD12.reduce((a, b) => a + b.empl12, 0) / withD12.length;
+const pctAbove = Math.round(above.length / SCHOOLS.length * 100);
+
+document.getElementById('cards').innerHTML = [
+  { lbl:'Total escuelas',          val: SCHOOLS.length,           hint:'con préstamos activos',        cls:'' },
+  { lbl:'En línea / por encima',   val: above.length + ' (' + pctAbove + '%)', hint:'cumplen objetivo 12m', cls:'green' },
+  { lbl:'Por debajo objetivo',     val: below.length + ' (' + (100-pctAbove) + '%)', hint:'gap negativo en 12m', cls:'red' },
+  { lbl:'Empl. media real 12m',    val: avgE12.toFixed(1) + '%',  hint:'media simple todas escuelas',  cls:'' },
+  { lbl:'Target medio 12m (B)',    val: '70%',                    hint:'benchmark rating B (mayoría)',  cls:'' },
+].map(c => `<div class="card">
+  <div class="lbl">${c.lbl}</div>
+  <div class="val ${c.cls}">${c.val}</div>
+  <div class="hint">${c.hint}</div>
+</div>`).join('');
+
+// ── RATING ROW ────────────────────────────────────────────────────────────────
+document.getElementById('ratingrow').innerHTML = RATING_ORDER.map(r => {
+  const grp = SCHOOLS.filter(s => s.rating === r);
+  const w12  = grp.filter(s => s.empl12 !== null);
+  const w24  = grp.filter(s => s.empl24 !== null);
+  const avg12 = w12.length ? (w12.reduce((a,b) => a+b.empl12, 0) / w12.length) : null;
+  const avg24 = w24.length ? (w24.reduce((a,b) => a+b.empl24, 0) / w24.length) : null;
+  const ok12  = grp.filter(s => s.empl12 !== null && s.empl12 >= T[12][r]).length;
+  const t12   = T[12][r], t24 = T[24][r];
+  const ok12cls  = avg12 !== null && avg12 >= t12 ? 'ok' : 'ko';
+  const ok24cls  = avg24 !== null && avg24 >= t24 ? 'ok' : 'ko';
+  return `<div class="rbox">
+    <div class="rbox-head">
+      <span class="r ${rCls(r)}">${r}</span>
+      <div><div class="rtitle">Rating ${r}</div><div class="rcount">${grp.length} escuelas</div></div>
+    </div>
+    <div class="rbox-stat"><span class="rsl">Target 12m</span><span class="rsv">${t12}%</span></div>
+    <div class="rbox-stat"><span class="rsl">Media real 12m</span><span class="rsv ${ok12cls}">${avg12 !== null ? avg12.toFixed(1)+'%' : '—'}</span></div>
+    <div class="rbox-stat"><span class="rsl">Target 24m</span><span class="rsv">${t24}%</span></div>
+    <div class="rbox-stat"><span class="rsl">Media real 24m</span><span class="rsv ${ok24cls}">${avg24 !== null ? avg24.toFixed(1)+'%' : '—'}</span></div>
+    <div class="rbox-stat"><span class="rsl">Cumplen 12m</span><span class="rsv ${ok12 === w12.length ? 'ok':'ko'}">${ok12}/${w12.length}</span></div>
+  </div>`;
+}).join('');
+</script>
+</body>
+</html>

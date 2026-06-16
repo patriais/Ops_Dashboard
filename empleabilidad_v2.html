@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Empleabilidad 2.0 · BCAS</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6fa; color: #1a1d2e; font-size: 13px; }
+
+.topbar { background: white; border-bottom: 1px solid #e8eaf0; padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; }
+.topbar h1 { font-size: 16px; font-weight: 700; color: #1a1d2e; }
+.topbar .sub { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+.badge { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+
+.main { padding: 24px 32px; max-width: 1500px; margin: 0 auto; }
+
+/* ── FILTERS ── */
+.filters { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+.filters label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; }
+.filters select { background: white; border: 1px solid #e8eaf0; border-radius: 7px; padding: 7px 12px; font-size: 12px; color: #1a1d2e; cursor: pointer; min-width: 180px; }
+.filters select:focus { outline: none; border-color: #6366f1; }
+.filter-sep { width: 1px; height: 24px; background: #e8eaf0; }
+
+/* ── METHOD CARDS ── */
+.methods-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 24px; }
+.mcard { background: white; border: 1px solid #e8eaf0; border-radius: 10px; padding: 14px 16px; border-top: 3px solid var(--mc); }
+.mcard .mtag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--mc); margin-bottom: 6px; }
+.mcard .mname { font-size: 12px; font-weight: 700; color: #1a1d2e; margin-bottom: 6px; }
+.mcard .mdesc { font-size: 11px; color: #6b7280; line-height: 1.45; margin-bottom: 8px; }
+.mcard .mpros { font-size: 10px; color: #059669; }
+.mcard .mcons { font-size: 10px; color: #dc2626; margin-top: 2px; }
+
+/* ── KPI STRIP ── */
+.kpi-section { background: white; border: 1px solid #e8eaf0; border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+.kpi-section .sec-header { padding: 14px 20px; border-bottom: 1px solid #e8eaf0; display: flex; align-items: center; gap: 8px; }
+.kpi-section .sec-title { font-size: 13px; font-weight: 700; color: #1a1d2e; }
+.kpi-section .sec-sub { font-size: 11px; color: #9ca3af; }
+.kpi-table { width: 100%; border-collapse: collapse; }
+.kpi-table th { padding: 9px 14px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; border-bottom: 1px solid #e8eaf0; background: #f9fafb; }
+.kpi-table th.center { text-align: center; }
+.kpi-table td { padding: 10px 14px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+.kpi-table tr:last-child td { border-bottom: none; }
+.kpi-table tr:hover td { background: #fafafa; }
+.method-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
+.kpi-val { font-weight: 700; font-size: 13px; }
+.kpi-val.hi { color: #059669; }
+.kpi-val.lo { color: #dc2626; }
+.kpi-val.mid { color: #d97706; }
+.kpi-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin-left: 4px; }
+.kpi-badge.top { background: #d1fae5; color: #065f46; }
+.kpi-badge.bot { background: #fee2e2; color: #991b1b; }
+.kpi-center { text-align: center; }
+td.g12 { background: #f0fdf4 !important; }
+td.g18 { background: #eff6ff !important; }
+td.g30 { background: #faf5ff !important; }
+th.g12 { background: #dcfce7 !important; }
+th.g18 { background: #dbeafe !important; }
+th.g30 { background: #ede9fe !important; }
+
+/* ── CHART ── */
+.chart-section { background: white; border: 1px solid #e8eaf0; border-radius: 12px; margin-bottom: 20px; padding: 20px; }
+.chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.chart-title { font-size: 13px; font-weight: 700; color: #1a1d2e; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 12px; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #6b7280; cursor: pointer; user-select: none; }
+.leg-dot { width: 10px; height: 3px; border-radius: 2px; }
+
+/* ── TABLES ── */
+.section { background: white; border: 1px solid #e8eaf0; border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+.sec-header2 { padding: 14px 20px; border-bottom: 1px solid #e8eaf0; display: flex; align-items: center; gap: 10px; }
+.sec-icon { font-size: 16px; }
+.sec-title2 { font-size: 14px; font-weight: 700; color: #1a1d2e; }
+.sec-desc { font-size: 12px; color: #9ca3af; margin-left: auto; }
+
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: #f9fafb; }
+th { padding: 9px 12px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; border-bottom: 1px solid #e8eaf0; white-space: nowrap; }
+th.c { text-align: center; }
+td { padding: 9px 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafafa; }
+.school { font-weight: 600; color: #1a1d2e; }
+.n-val { color: #9ca3af; font-size: 12px; }
+.nd { color: #d1d5db; font-style: italic; font-size: 11px; }
+
+/* funnel row */
+.funnel-bar { display: flex; align-items: center; gap: 6px; }
+.fbar-wrap { width: 80px; height: 6px; background: #f3f4f6; border-radius: 3px; overflow: hidden; }
+.fbar-fill { height: 100%; border-radius: 3px; }
+.fval { font-weight: 700; font-size: 12px; min-width: 42px; }
+
+/* method-column coloring */
+.cm1 { background: rgba(99,102,241,.06) !important; }
+.cm2 { background: rgba(16,185,129,.06) !important; }
+.cm3 { background: rgba(245,158,11,.06) !important; }
+.cm4 { background: rgba(239,68,68,.06) !important; }
+.cm5 { background: rgba(14,165,233,.06) !important; }
+.cm6 { background: rgba(168,85,247,.06) !important; }
+
+.no-data-msg { text-align: center; padding: 40px; color: #9ca3af; font-size: 13px; }
+
+.tab-nav { background: white; border-bottom: 1px solid #e8eaf0; padding: 0 32px; display: flex; gap: 0; }
+.tab-nav a { display: inline-flex; align-items: center; gap: 6px; padding: 12px 20px; font-size: 12px; font-weight: 600; color: #6b7280; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab-nav a.active { color: #1a1d2e; border-bottom-color: #6366f1; }
+.tab-nav a:hover:not(.active) { color: #1a1d2e; background: #f9fafb; }
+</style>
+</head>
+<body>
+
+<div class="tab-nav">
+  <a href="dashboard_empleabilidad.html">📈 Empleabilidad · Curva teórica</a>
+  <a href="empleabilidad_v2.html" class="active">🔬 Empleabilidad 2.0 · Comparativa métodos</a>
+</div>
+
+<div class="topbar">
+  <div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <h1>Empleabilidad 2.0 · Comparativa de Métodos</h1>
+      <span class="badge">⚠ Filtro financiador pendiente de integración con BBDD</span>
+    </div>
+    <div class="sub">Análisis comparativo de 6 metodologías de medición · 3.317 alumnos · umbral 17.000€/año</div>
+  </div>
+  <div style="font-size:11px;color:#9ca3af">Datos actualizados: junio 2026</div>
+</div>
+
+<div class="main">
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <label>Escuela</label>
+    <select id="sel-school" onchange="applyFilters()">
+      <option value="ALL">Todas las escuelas</option>
+    </select>
+    <div class="filter-sep"></div>
+    <label>Financiador</label>
+    <select id="sel-fin" onchange="applyFilters()">
+      <option value="ALL">Todos los financiadores</option>
+      <option value="SPV2">Bcasfintech SPV2 SL</option>
+      <option value="SPV3">Bcasfintech SPV3 SL</option>
+      <option value="SL">Bcasfintech SL</option>
+    </select>
+    <div style="font-size:11px;color:#9ca3af;margin-left:4px">⚠ Filtro financiador: mock — pendiente cruce con BBDD</div>
+  </div>
+
+  <!-- METHOD DESCRIPTION CARDS -->
+  <div class="methods-grid">
+    <div class="mcard" style="--mc:#6366f1">
+      <div class="mtag">M1 · Tradicional</div>
+      <div class="mname">Mes a mes con umbral</div>
+      <div class="mdesc">Empleable en mes M si base(M) ≥ 1.417€/mes. Foto instantánea de cada mes.</div>
+      <div class="mpros">✓ Sencillo y auditable</div>
+      <div class="mcons">✗ Muy volátil, sensible a huecos de 1 mes</div>
+    </div>
+    <div class="mcard" style="--mc:#10b981">
+      <div class="mtag">M2 · Continuada</div>
+      <div class="mname">Meses consecutivos</div>
+      <div class="mdesc">Empleable si en la ventana de N meses hubo X meses CONSECUTIVOS ≥ umbral (40% de N exigidos).</div>
+      <div class="mpros">✓ Premia estabilidad laboral</div>
+      <div class="mcons">✗ Penaliza rotación; cae a 0% tras mes 31</div>
+    </div>
+    <div class="mcard" style="--mc:#f59e0b">
+      <div class="mtag">M3 · Discontinuada</div>
+      <div class="mname">Meses no consecutivos</div>
+      <div class="mdesc">Igual que M2 pero los X meses no tienen que ser consecutivos (basta con acumular X meses ≥ umbral en la ventana).</div>
+      <div class="mpros">✓ Refleja contratos cortos y autónomos</div>
+      <div class="mcons">✗ Cae a 0% tras mes 31 por exigencia ventana</div>
+    </div>
+    <div class="mcard" style="--mc:#ef4444">
+      <div class="mtag">M4 · Acumulada</div>
+      <div class="mname">Promedio de bases</div>
+      <div class="mdesc">Empleable si el PROMEDIO de bases en la ventana ≥ umbral mensual. Pondera por importes cotizados.</div>
+      <div class="mpros">✓ Muy estable, no cae en horizonte largo</div>
+      <div class="mcons">✗ Pico alto puede ocultar periodos de paro</div>
+    </div>
+    <div class="mcard" style="--mc:#0ea5e9">
+      <div class="mtag">M5 · Carencia</div>
+      <div class="mname">Smoothing K meses</div>
+      <div class="mdesc">Una vez empleable, sigue contando como tal K=3 meses aunque caiga la base. Suaviza huecos cortos.</div>
+      <div class="mpros">✓ Cercano a M1 pero sin pénalizar huecos breves</div>
+      <div class="mcons">✗ Sesgo al alza si K es grande</div>
+    </div>
+    <div class="mcard" style="--mc:#a855f7">
+      <div class="mtag">M6 · Promedio %</div>
+      <div class="mname">% medio de meses</div>
+      <div class="mdesc">Empleable si el % medio de meses empleados en la ventana ≥ curva (25% en mes 12 → 70% en mes 60).</div>
+      <div class="mpros">✓ Comparable entre ventanas, parámetro único</div>
+      <div class="mcons">✗ Pierde cobertura en horizontes largos</div>
+    </div>
+  </div>
+
+  <!-- KPI SUMMARY -->
+  <div class="kpi-section">
+    <div class="sec-header">
+      <span style="font-size:16px">📊</span>
+      <div>
+        <div class="sec-title">Resumen de KPIs · Tasa global de empleabilidad</div>
+        <div class="sec-sub">N alumnos con ≥ M meses post-graduación en cada horizonte temporal</div>
+      </div>
+    </div>
+    <table class="kpi-table" id="kpi-table">
+      <thead>
+        <tr>
+          <th>Método</th>
+          <th>Descripción corta</th>
+          <th class="g12 center">Mes 12</th>
+          <th class="g12 center">N alumnos 12m</th>
+          <th class="g18 center">Mes 18</th>
+          <th class="g18 center">N alumnos 18m</th>
+          <th class="g30 center">Mes 30</th>
+          <th class="g30 center">N alumnos 30m</th>
+        </tr>
+      </thead>
+      <tbody id="kpi-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- CHART -->
+  <div class="chart-section">
+    <div class="chart-header">
+      <div class="chart-title">Curva de empleabilidad por método (meses post-graduación)</div>
+      <div class="chart-legend" id="chart-legend"></div>
+    </div>
+    <canvas id="myChart" height="90"></canvas>
+  </div>
+
+  <!-- FUNNEL TABLE -->
+  <div class="section">
+    <div class="sec-header2">
+      <span class="sec-icon">🔽</span>
+      <span class="sec-title2">Funnel de empleabilidad · Todos los métodos</span>
+      <span class="sec-desc" id="funnel-scope">Scope: todas las escuelas</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Método</th>
+          <th>Lógica</th>
+          <th class="c cm1">Mes 6</th>
+          <th class="c cm1">Mes 12</th>
+          <th class="c cm1">Mes 18</th>
+          <th class="c cm1">Mes 24</th>
+          <th class="c cm1">Mes 30</th>
+          <th class="c cm1">Mes 36</th>
+          <th>Tendencia 12→36m</th>
+        </tr>
+      </thead>
+      <tbody id="funnel-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- SCHOOL SUMMARY TABLE -->
+  <div class="section">
+    <div class="sec-header2">
+      <span class="sec-icon">🏫</span>
+      <span class="sec-title2">Resumen por escuela · Empleabilidad a 12m por método</span>
+      <span class="sec-desc">Ordenado por M5 Carencia (referencia más estable)</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Escuela</th>
+          <th class="c">N</th>
+          <th class="c cm1" style="background:rgba(99,102,241,.12)!important">M1 Trad.</th>
+          <th class="c cm2" style="background:rgba(16,185,129,.12)!important">M2 Cont.</th>
+          <th class="c cm3" style="background:rgba(245,158,11,.12)!important">M3 Disc.</th>
+          <th class="c cm4" style="background:rgba(239,68,68,.12)!important">M4 Acum.</th>
+          <th class="c cm5" style="background:rgba(14,165,233,.12)!important">M5 Car.</th>
+          <th class="c cm6" style="background:rgba(168,85,247,.12)!important">M6 Prom.</th>
+          <th>Rango métodos</th>
+        </tr>
+      </thead>
+      <tbody id="school-tbody"></tbody>
+    </table>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ── PALETA ──────────────────────────────────────────────────────────────────
+const COLORS = {
+  M1:'#6366f1', M2:'#10b981', M3:'#f59e0b', M4:'#ef4444', M5:'#0ea5e9', M6:'#a855f7'
+};
+
+// ── CURVAS (Comparativa, meses 0-36) ────────────────────────────────────────
+// M1 y M5: desde mes 0. M2/M3: desde mes 12. M4: desde mes 12. M6: desde mes 12.
+const CURVE = {
+  M1:[22.8,24.4,27.6,30.7,33.8,36.4,38.0,38.8,40.7,41.9,42.8,42.6,42.5,43.4,43.8,43.5,44.4,44.4,42.7,41.1,41.9,41.4,39.0,39.9,40.1,39.7,38.8,36.6,35.2,35.1,34.6,34.5,31.1,30.5,28.4,26.3,29.0],
+  M2:[null,null,null,null,null,null,null,null,null,null,null,null,52.0,49.7,52.3,50.3,51.0,48.7,49.0,46.9,43.6,44.1,41.4,39.8,38.0,37.5,34.6,29.6,23.6,23.0,17.7,13.0,0.0,0.0,0.0,0.0,0.0],
+  M3:[null,null,null,null,null,null,null,null,null,null,null,null,52.8,51.0,53.9,52.0,52.6,50.7,51.0,49.1,46.0,46.2,44.0,42.2,39.9,39.4,36.9,31.9,25.5,25.0,18.7,13.6,0.0,0.0,0.0,0.0,0.0],
+  M4:[null,null,null,null,null,null,null,null,null,null,null,null,30.8,33.0,35.8,36.7,37.5,38.1,38.6,39.1,38.6,38.7,38.0,37.4,37.6,37.3,36.8,36.7,35.7,35.2,34.3,33.8,33.6,31.9,32.2,31.1,31.5],
+  M5:[22.8,26.7,31.0,35.9,38.6,41.1,43.4,45.2,46.5,48.3,49.1,49.5,49.5,49.5,50.7,49.9,50.0,49.9,49.7,49.4,48.0,47.8,46.6,46.2,45.9,45.7,44.9,44.6,44.0,42.9,41.2,40.2,39.0,36.8,35.4,34.0,32.9],
+  M6:[null,null,null,null,null,null,null,null,null,null,null,null,48.6,47.9,50.6,49.5,50.2,48.4,48.3,49.1,46.0,44.7,44.0,42.2,41.8,39.4,38.7,36.2,30.8,30.6,26.7,20.2,18.2,14.5,null,null,null],
+};
+
+// ── KPI SNAPSHOTS ────────────────────────────────────────────────────────────
+// { method, label, lbl12, n12, lbl18, n18, lbl30, n30 }
+const KPIS = [
+  { id:'M1', label:'Tradicional',    v12:42.5, n12:2108, v18:42.7, n18:1756, v30:34.6, n30:763 },
+  { id:'M2', label:'Continuada',     v12:52.0, n12:2108, v18:49.0, n18:1756, v30:17.7, n30:763 },
+  { id:'M3', label:'Discontinuada',  v12:52.8, n12:2108, v18:51.0, n18:1756, v30:18.7, n30:763 },
+  { id:'M4', label:'Acumulada',      v12:30.8, n12:2108, v18:38.6, n18:1756, v30:34.3, n30:763 },
+  { id:'M5', label:'Carencia K=3',   v12:49.5, n12:2108, v18:49.7, n18:1756, v30:41.2, n30:763 },
+  { id:'M6', label:'Promedio %',     v12:48.6, n12:2108, v18:48.3, n18:1756, v30:26.7, n30:763 },
+];
+
+// ── FUNNEL por método (tasas en hitos clave) ──────────────────────────────
+const FUNNEL = [
+  { id:'M1', logic:'base(M) ≥ umbral',              v6:38.0, v12:42.5, v18:42.7, v24:40.1, v30:34.6, v36:29.0 },
+  { id:'M2', logic:'X meses consecutivos en ventana',v6:null, v12:52.0, v18:49.0, v24:38.0, v30:17.7, v36: 0.0 },
+  { id:'M3', logic:'X meses no-consec. en ventana', v6:null, v12:52.8, v18:51.0, v24:39.9, v30:18.7, v36: 0.0 },
+  { id:'M4', logic:'promedio bases ≥ umbral',        v6:null, v12:30.8, v18:38.6, v24:37.6, v30:34.3, v36:31.5 },
+  { id:'M5', logic:'M1 + tolerancia K=3 meses',     v6:43.4, v12:49.5, v18:49.7, v24:45.9, v30:41.2, v36:32.9 },
+  { id:'M6', logic:'% medio meses ≥ curva N',       v6:null, v12:48.6, v18:48.3, v24:41.8, v30:26.7, v36:null },
+];
+
+// ── SCHOOLS: tasas por método a mes 12 ────────────────────────────────────
+const SCHOOLS = [
+  { name:'Hack A Boss',           n:470, M1:40.4, M2:45.7, M3:46.4, M4:22.0, M5:45.2, M6:42.2 },
+  { name:'The Bridge',            n:214, M1:44.9, M2:56.2, M3:56.7, M4:35.4, M5:51.1, M6:52.8 },
+  { name:'4geeks',                n:213, M1:46.0, M2:54.0, M3:55.0, M4:32.0, M5:52.0, M6:48.0 },
+  { name:'Evolve',                n:195, M1:100.0,M2:100.0,M3:100.0,M4:50.0, M5:100.0,M6:100.0},
+  { name:'Assembler',             n:184, M1:22.3, M2:26.1, M3:26.6, M4:15.8, M5:25.0, M6:25.5 },
+  { name:'Ironhack',              n:181, M1:42.6, M2:59.6, M3:59.6, M4:29.8, M5:55.3, M6:57.4 },
+  { name:'EIP International',     n:157, M1:62.5, M2:73.8, M3:76.3, M4:57.5, M5:76.3, M6:70.0 },
+  { name:'Qualentum',             n:142, M1:63.4, M2:71.8, M3:72.5, M4:48.6, M5:70.4, M6:69.7 },
+  { name:'Upgrade Hub',           n:129, M1:40.4, M2:50.0, M3:50.0, M4:22.8, M5:48.2, M6:45.6 },
+  { name:'Yinius',                n:116, M1:25.0, M2:65.0, M3:65.0, M4:55.0, M5:50.0, M6:60.0 },
+  { name:'E-Com Growth Partners', n: 97, M1:18.2, M2:39.4, M3:42.4, M4:18.2, M5:30.3, M6:21.2 },
+  { name:'Stemdo',                n: 90, M1:29.4, M2:29.4, M3:29.4, M4:29.4, M5:29.4, M6:29.4 },
+  { name:'Nuclio',                n: 85, M1:37.5, M2:48.6, M3:50.0, M4:29.2, M5:40.3, M6:44.4 },
+  { name:'University Of Sales',   n: 79, M1:44.3, M2:53.2, M3:54.4, M4:32.9, M5:49.4, M6:46.8 },
+  { name:'Neoland',               n: 76, M1:50.0, M2:61.1, M3:61.1, M4:22.2, M5:55.6, M6:50.0 },
+  { name:'Aited',                 n: 74, M1:40.0, M2:46.7, M3:53.3, M4:40.0, M5:53.3, M6:46.7 },
+  { name:'Ironhack Germany',      n: 64, M1: 0.0, M2: 0.0, M3: 0.0, M4: 0.0, M5: 0.0, M6: 0.0 },
+  { name:'Moa',                   n: 61, M1:64.3, M2:71.4, M3:73.8, M4:50.0, M5:69.0, M6:69.0 },
+  { name:'Multiply',              n: 59, M1:35.6, M2:49.2, M3:50.8, M4:30.5, M5:45.8, M6:47.5 },
+  { name:'Gammatech',             n: 58, M1:44.8, M2:55.2, M3:55.2, M4:32.8, M5:51.7, M6:53.4 },
+  { name:'Thepower',              n: 45, M1:27.9, M2:44.2, M3:44.2, M4:32.6, M5:39.5, M6:39.5 },
+  { name:'Geekshubs',             n: 43, M1:48.8, M2:60.5, M3:60.5, M4:30.2, M5:55.8, M6:53.5 },
+  { name:'Keepcoding',            n: 41, M1:48.4, M2:67.7, M3:67.7, M4:41.9, M5:61.3, M6:67.7 },
+  { name:'Pontia',                n: 33, M1:68.8, M2:81.3, M3:81.3, M4:25.0, M5:68.8, M6:75.0 },
+  { name:'Adalab',                n: 30, M1:33.3, M2:50.0, M3:50.0, M4:29.2, M5:54.2, M6:50.0 },
+  { name:'Oxygen',                n: 25, M1:45.5, M2:59.1, M3:59.1, M4:27.3, M5:54.5, M6:54.5 },
+  { name:'Immune',                n: 20, M1:38.9, M2:44.4, M3:44.4, M4:27.8, M5:44.4, M6:44.4 },
+  { name:'Instituto TM',          n: 20, M1:25.0, M2:25.0, M3:25.0, M4:20.0, M5:30.0, M6:25.0 },
+  { name:'Europeanbtech',         n: 19, M1:72.7, M2:81.8, M3:81.8, M4:45.5, M5:81.8, M6:81.8 },
+  { name:'Codenotch',             n: 18, M1:44.4, M2:50.0, M3:50.0, M4:22.2, M5:44.4, M6:44.4 },
+  { name:'Product Hackers',       n: 14, M1:70.0, M2:80.0, M3:80.0, M4:70.0, M5:80.0, M6:80.0 },
+  { name:'Reboot',                n:  7, M1:57.1, M2:71.4, M3:71.4, M4:42.9, M5:57.1, M6:71.4 },
+  { name:'Campsite',              n:  5, M1:80.0, M2:80.0, M3:80.0, M4:80.0, M5:80.0, M6:80.0 },
+];
+
+// ── POPULATE SCHOOL SELECTOR ───────────────────────────────────────────────
+const selSchool = document.getElementById('sel-school');
+SCHOOLS.forEach(s => {
+  const o = document.createElement('option');
+  o.value = s.name; o.textContent = s.name;
+  selSchool.appendChild(o);
+});
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function pct(v, nd='—') {
+  if (v === null || v === undefined) return `<span class="nd">${nd}</span>`;
+  return v.toFixed(1) + '%';
+}
+function colorCls(v) {
+  if (v === null) return '';
+  if (v >= 55) return 'hi';
+  if (v >= 40) return 'mid';
+  return 'lo';
+}
+function trendArrow(v12, v36) {
+  if (v12 === null || v36 === null) return '<span class="nd">—</span>';
+  const d = v36 - v12;
+  if (d >= 5)  return `<span style="color:#059669;font-weight:700">▲ +${d.toFixed(1)}pp</span>`;
+  if (d <= -10) return `<span style="color:#dc2626;font-weight:700">▼ ${d.toFixed(1)}pp</span>`;
+  return `<span style="color:#d97706;font-weight:700">→ ${d >= 0 ? '+' : ''}${d.toFixed(1)}pp</span>`;
+}
+function bar(v, color) {
+  if (v === null) return '<span class="nd">—</span>';
+  const w = Math.min(v, 100);
+  return `<div class="funnel-bar"><div class="fbar-wrap"><div class="fbar-fill" style="width:${w}%;background:${color}"></div></div><span class="fval">${v.toFixed(1)}%</span></div>`;
+}
+
+// ── CURRENT FILTERED SCHOOL ───────────────────────────────────────────────
+let currentSchool = 'ALL';
+
+function applyFilters() {
+  currentSchool = document.getElementById('sel-school').value;
+  renderKPI();
+  renderFunnel();
+  renderSchoolTable();
+  updateChart();
+}
+
+// ── KPI TABLE ─────────────────────────────────────────────────────────────
+function renderKPI() {
+  const vals12 = KPIS.map(k => k.v12);
+  const max12 = Math.max(...vals12.filter(v=>v!==null));
+  const min12 = Math.min(...vals12.filter(v=>v!==null));
+
+  document.getElementById('kpi-tbody').innerHTML = KPIS.map(k => {
+    const tag12 = k.v12 === max12 ? '<span class="kpi-badge top">↑ max</span>' :
+                  k.v12 === min12 ? '<span class="kpi-badge bot">↓ min</span>' : '';
+    const c12 = colorCls(k.v12), c18 = colorCls(k.v18), c30 = colorCls(k.v30);
+    return `<tr>
+      <td><span class="method-dot" style="background:${COLORS[k.id]}"></span><strong>${k.id}</strong> · ${k.label}</td>
+      <td style="color:#9ca3af;font-size:11px">${FUNNEL.find(f=>f.id===k.id)?.logic || ''}</td>
+      <td class="kpi-center g12"><span class="kpi-val ${c12}">${pct(k.v12)}</span>${tag12}</td>
+      <td class="kpi-center g12" style="color:#9ca3af">${k.n12.toLocaleString('es-ES')}</td>
+      <td class="kpi-center g18"><span class="kpi-val ${c18}">${pct(k.v18)}</span></td>
+      <td class="kpi-center g18" style="color:#9ca3af">${k.n18.toLocaleString('es-ES')}</td>
+      <td class="kpi-center g30"><span class="kpi-val ${c30}">${pct(k.v30)}</span></td>
+      <td class="kpi-center g30" style="color:#9ca3af">${k.n30.toLocaleString('es-ES')}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── FUNNEL TABLE ──────────────────────────────────────────────────────────
+function renderFunnel() {
+  const scopeLabel = currentSchool === 'ALL' ? 'Todas las escuelas · 3.317 alumnos' : `Escuela: ${currentSchool}`;
+  document.getElementById('funnel-scope').textContent = scopeLabel;
+
+  document.getElementById('funnel-tbody').innerHTML = FUNNEL.map(f => {
+    const c = COLORS[f.id];
+    return `<tr>
+      <td><span class="method-dot" style="background:${c}"></span><strong>${f.id}</strong></td>
+      <td style="color:#6b7280;font-size:11px">${f.logic}</td>
+      <td class="kpi-center">${f.v6 !== null ? bar(f.v6, c) : '<span class="nd">n/a</span>'}</td>
+      <td class="kpi-center">${bar(f.v12, c)}</td>
+      <td class="kpi-center">${bar(f.v18, c)}</td>
+      <td class="kpi-center">${bar(f.v24, c)}</td>
+      <td class="kpi-center">${bar(f.v30, c)}</td>
+      <td class="kpi-center">${f.v36 !== null ? bar(f.v36, c) : '<span class="nd">n/a</span>'}</td>
+      <td>${trendArrow(f.v12, f.v36)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── SCHOOL TABLE ──────────────────────────────────────────────────────────
+function renderSchoolTable() {
+  let data = currentSchool === 'ALL' ? SCHOOLS : SCHOOLS.filter(s => s.name === currentSchool);
+  data = [...data].sort((a,b) => (b.M5||0) - (a.M5||0));
+
+  document.getElementById('school-tbody').innerHTML = data.map(s => {
+    const vals = ['M1','M2','M3','M4','M5','M6'].map(m => s[m]).filter(v=>v!==null);
+    const mn = Math.min(...vals), mx = Math.max(...vals);
+    const spread = mx - mn;
+    const spreadCls = spread > 30 ? 'style="color:#dc2626;font-weight:700"' :
+                      spread > 15 ? 'style="color:#d97706;font-weight:700"' : 'style="color:#059669"';
+    return `<tr>
+      <td><span class="school">${s.name}</span></td>
+      <td class="kpi-center"><span class="n-val">${s.n}</span></td>
+      <td class="kpi-center cm1"><span class="${colorCls(s.M1)}">${pct(s.M1)}</span></td>
+      <td class="kpi-center cm2"><span class="${colorCls(s.M2)}">${pct(s.M2)}</span></td>
+      <td class="kpi-center cm3"><span class="${colorCls(s.M3)}">${pct(s.M3)}</span></td>
+      <td class="kpi-center cm4"><span class="${colorCls(s.M4)}">${pct(s.M4)}</span></td>
+      <td class="kpi-center cm5"><span class="${colorCls(s.M5)}">${pct(s.M5)}</span></td>
+      <td class="kpi-center cm6"><span class="${colorCls(s.M6)}">${pct(s.M6)}</span></td>
+      <td><span ${spreadCls}>${mn.toFixed(1)}% – ${mx.toFixed(1)}% (Δ ${spread.toFixed(1)}pp)</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CHART ─────────────────────────────────────────────────────────────────
+const labels = Array.from({length:37}, (_,i)=>i);
+let chartInstance;
+
+function buildDatasets() {
+  return Object.entries(CURVE).map(([m, vals]) => ({
+    label: m,
+    data: vals,
+    borderColor: COLORS[m],
+    backgroundColor: COLORS[m] + '22',
+    borderWidth: 2,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    tension: 0.3,
+    spanGaps: false,
+  }));
+}
+
+function updateChart() {
+  if (chartInstance) chartInstance.destroy();
+  const ctx = document.getElementById('myChart').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: buildDatasets() },
+    options: {
+      responsive: true,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y !== null ? ctx.parsed.y.toFixed(1)+'%' : '—'}`,
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display:true, text:'Meses post-graduación', font:{size:11}, color:'#9ca3af' },
+          grid: { color:'#f3f4f6' },
+          ticks: { color:'#9ca3af', font:{size:10} },
+        },
+        y: {
+          title: { display:true, text:'Tasa empleabilidad (%)', font:{size:11}, color:'#9ca3af' },
+          min:0, max:110,
+          ticks: { color:'#9ca3af', font:{size:10}, callback: v => v+'%' },
+          grid: { color:'#f3f4f6' },
+        }
+      }
+    }
+  });
+}
+
+// Legend clicks
+const legendEl = document.getElementById('chart-legend');
+Object.entries(COLORS).forEach(([m, c]) => {
+  const item = document.createElement('div');
+  item.className = 'leg-item';
+  item.innerHTML = `<div class="leg-dot" style="background:${c};height:3px;width:24px;border-radius:2px"></div>${m}`;
+  item.onclick = () => {
+    const ds = chartInstance.data.datasets.find(d=>d.label===m);
+    if (ds) { ds.hidden = !ds.hidden; chartInstance.update(); }
+    item.style.opacity = item.style.opacity === '0.4' ? '1' : '0.4';
+  };
+  legendEl.appendChild(item);
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+renderKPI();
+renderFunnel();
+renderSchoolTable();
+updateChart();
+</script>
+</body>
+</html>
