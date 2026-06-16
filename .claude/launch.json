@@ -1,0 +1,60 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "settlements",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["settlements_server.js"],
+      "port": 3030
+    },
+    {
+      "name": "bcas-dashboard",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5174"],
+      "cwd": "bcas-dashboard",
+      "port": 5174
+    }
+  ,{
+      "name": "empleabilidad",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "3032", "."],
+      "port": 3032
+    }
+  ,{
+      "name": "evolve-dashboard",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["evolve_server.js"],
+      "port": 3031
+    }
+  ,{
+      "name": "germany-dashboard",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["germany_server.js"],
+      "port": 3034
+    }
+  ,{
+      "name": "ops-dashboard",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "3035", "."],
+      "port": 3035
+    }
+  ,{
+      "name": "default-traceability",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["default_traceability_server.js"],
+      "port": 3036
+    }
+  ,{
+      "name": "restructuring",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["restructuring_server.js"],
+      "port": 3037
+    }
+  ,{
+      "name": "empleabilidad-v2",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["empleabilidad_v2_server.js"],
+      "port": 3038
+    }
+  ]
+}
