@@ -585,6 +585,10 @@ tr:hover td{background:#f9fafb}
           <div class="sbic">AA</div>
           <span class="sbnm">Calculadora AA</span>
         </div>
+        <div class="sbn" id="nav-modif" onclick="loadModIF()">
+          <div class="sbic">IF</div>
+          <span class="sbnm">Modificación IF</span>
+        </div>
       </div>
     </div>
     <div class="sbs">
@@ -947,6 +951,110 @@ function recomputeReduce(){
       mkMeta('Saldo pendiente (base)',fmtEur(saldo))+
       mkMeta('TAE contractual mantenido',(c.tae*100).toFixed(2)+'%')+
       mkMeta('Cuota mensual original',fmtEur(c.cuotaOrig))+
+    '</div>';
+}
+
+function loadModIF(){
+  curCharts.forEach(function(c){c.destroy();});curCharts=[];
+  document.querySelectorAll('.sbn').forEach(function(el){el.classList.remove('act');});
+  var nav=document.getElementById('nav-modif');if(nav)nav.classList.add('act');
+  document.getElementById('dashTitle').textContent='Modificación IF';
+  document.getElementById('content').innerHTML=
+    '<div style="max-width:560px">'+
+    '<div class="card" style="margin-bottom:16px">'+
+    '<h2 style="margin-bottom:6px">Modificación del importe financiado</h2>'+
+    '<p style="font-size:12px;color:#9ca3af;margin-bottom:14px">Solo préstamos PaP de Bcasfintech. El préstamo se reconfigura como si se hubiera concedido por el nuevo importe desde el inicio: las cuotas ya abonadas se descuentan del nuevo total a devolver y el saldo se reparte entre las cuotas pendientes.</p>'+
+    '<div style="display:flex;gap:8px">'+
+    '<input id="modIn" class="calc-in" type="text" placeholder="Loan ID...">'+
+    '<button id="modBtn" class="calc-btn">Buscar</button>'+
+    '</div>'+
+    '</div>'+
+    '<div id="modRes"></div>'+
+    '</div>';
+  var inp=document.getElementById('modIn');
+  var btn=document.getElementById('modBtn');
+  if(btn)btn.addEventListener('click',doModIF);
+  if(inp){inp.addEventListener('keydown',function(e){if(e.key==='Enter')doModIF();});inp.focus();}
+}
+
+function doModIF(){
+  var lid=(document.getElementById('modIn')||{}).value||'';
+  lid=lid.trim();
+  if(!lid)return;
+  var res=document.getElementById('modRes');
+  if(!res)return;
+  res.innerHTML='<div class="card" style="text-align:center;padding:32px;color:#9ca3af;font-size:13px">Buscando...</div>';
+  fetch('/api/modify-if?loan_id='+encodeURIComponent(lid))
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.error){
+        res.innerHTML='<div class="card" style="border-color:#fecaca;padding:16px"><p style="color:#be123c;font-size:13px;margin:0">'+data.error+'</p></div>';
+        return;
+      }
+      window._modif=data;
+      var sugerido=Math.round(data.importe_financiado_actual);
+      res.innerHTML=
+        '<div class="card" style="padding:0;overflow:hidden">'+
+          '<div style="padding:18px 20px;border-bottom:1px solid #e5e7eb">'+
+            '<div class="card-lbl">Préstamo actual</div>'+
+            mkMeta('Loan ID',data.loan_id)+
+            mkMeta('Financiador',data.financier_name)+
+            mkMeta('Importe financiado',fmtEur(data.importe_financiado_actual))+
+            mkMeta('Coste por cuota ('+data.pct_coste_cuota.toFixed(2)+'%)',data.student_paga_coste?fmtEur(data.coste_cuota_actual):'0,00 € (lo asume la escuela)')+
+            mkMeta('Cuota actual',fmtEur(data.cuota_actual))+
+            mkMeta('Cuotas pagadas / total',data.cuotas_pagadas+' / '+data.num_cuotas)+
+            mkMeta('Importe ya abonado',fmtEur(data.importe_pagado))+
+          '</div>'+
+          '<div style="padding:18px 20px">'+
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'+
+              '<label style="font-size:12px;color:#374151;flex:1">Nuevo importe financiado</label>'+
+              '<input id="modAmt" class="calc-in" type="number" min="0" step="1" value="'+sugerido+'" style="max-width:130px;text-align:center" oninput="recomputeModIF()">'+
+            '</div>'+
+            (data.cuotas_pendientes<1?'<div style="font-size:11px;color:#be123c;margin-bottom:8px">No quedan cuotas pendientes: el préstamo ya está pagado.</div>':'<div style="font-size:11px;color:#9ca3af;margin-bottom:8px">El saldo se repartirá entre <b>'+data.cuotas_pendientes+'</b> cuota'+(data.cuotas_pendientes>1?'s':'')+' pendiente'+(data.cuotas_pendientes>1?'s':'')+'.</div>')+
+            '<div id="modOut"></div>'+
+          '</div>'+
+        '</div>';
+      recomputeModIF();
+    })
+    .catch(function(e){
+      res.innerHTML='<div class="card" style="border-color:#fecaca;padding:16px"><p style="color:#be123c;font-size:13px;margin:0">Error de conexión: '+e.message+'</p></div>';
+    });
+}
+
+function recomputeModIF(){
+  var b=window._modif;if(!b)return;
+  var inp=document.getElementById('modAmt'),out=document.getElementById('modOut');
+  if(!inp||!out)return;
+  var A=parseFloat(inp.value);
+  if(isNaN(A)||A<=0){out.innerHTML='<div style="font-size:12px;color:#be123c">Introduce un importe financiado válido (&gt; 0).</div>';return;}
+  var r2=function(x){return Math.round(x*100)/100;};
+  var rate=b.student_paga_coste?b.pct_coste_cuota/100:0;
+  var costeCuota=A*rate;
+  var totalCoste=r2(costeCuota*b.num_cuotas);
+  var totalDevolver=r2(A+totalCoste);
+  var saldo=r2(totalDevolver-b.importe_pagado);
+  var nPend=b.cuotas_pendientes;
+  var nuevaCuota=nPend>0?r2(saldo/nPend):0;
+  var deltaCuota=nuevaCuota-b.cuota_actual;
+  out.innerHTML=
+    '<div style="text-align:center;padding:6px 0 18px">'+
+      '<div class="card-lbl">Nueva cuota (pendientes)</div>'+
+      '<div style="font-size:44px;font-weight:700;color:#0d9488;line-height:1.1">'+(nPend>0?fmtEur(nuevaCuota):'—')+'</div>'+
+      (nPend>0?'<div style="font-size:11px;color:#9ca3af;margin-top:6px"><b>'+nPend+'</b> cuota'+(nPend>1?'s':'')+' de '+fmtEur(nuevaCuota)+' &nbsp;·&nbsp; '+(deltaCuota>=0?'+':'')+fmtEur(deltaCuota)+' vs cuota actual</div>':'')+
+    '</div>'+
+    '<div style="border-top:1px solid #e5e7eb;padding-top:14px">'+
+      '<div class="card-lbl">Nuevo préstamo</div>'+
+      mkBrow('Nuevo importe financiado',r2(A),true)+
+      mkBrow('Coste por cuota',r2(costeCuota),false)+
+      mkBrow('Total coste financiero ('+b.num_cuotas+' cuotas)',totalCoste,false)+
+      mkBrow('Total a devolver',totalDevolver,true)+
+    '</div>'+
+    '<div style="border-top:1px solid #e5e7eb;padding-top:14px;margin-top:8px">'+
+      '<div class="card-lbl">Reparto del saldo</div>'+
+      mkBrow('Importe ya abonado ('+b.cuotas_pagadas+' cuota'+(b.cuotas_pagadas!==1?'s':'')+')',b.importe_pagado,false)+
+      mkBrow('Saldo pendiente a repartir',saldo,true)+
+      mkMeta('Cuotas pendientes',nPend)+
+      mkMeta('Nueva cuota','= '+fmtEur(saldo)+' / '+nPend+(nPend>0?' = '+fmtEur(nuevaCuota):''))+
     '</div>';
 }
 

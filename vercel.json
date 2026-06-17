@@ -11,6 +11,7 @@
   "functions": {
     "api/index.js":                  { "maxDuration": 30 },
     "api/calculate.js":              { "maxDuration": 30 },
+    "api/modify-if.js":              { "maxDuration": 30 },
     "api/germany.js":                { "maxDuration": 30 },
     "api/default_traceability.js":   { "maxDuration": 60 }
   }
