@@ -960,7 +960,8 @@ function loadModIF(){
   var nav=document.getElementById('nav-modif');if(nav)nav.classList.add('act');
   document.getElementById('dashTitle').textContent='Modificación IF';
   document.getElementById('content').innerHTML=
-    '<div style="max-width:560px">'+
+    '<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">'+
+    '<div style="flex:0 0 520px;max-width:520px">'+
     '<div class="card" style="margin-bottom:16px">'+
     '<h2 style="margin-bottom:6px">Modificación del importe financiado</h2>'+
     '<p style="font-size:12px;color:#9ca3af;margin-bottom:14px">Solo préstamos PaP de Bcasfintech. El préstamo se reconfigura como si se hubiera concedido por el nuevo importe desde el inicio: las cuotas ya abonadas se descuentan del nuevo total a devolver y el saldo se reparte entre las cuotas pendientes.</p>'+
@@ -970,6 +971,8 @@ function loadModIF(){
     '</div>'+
     '</div>'+
     '<div id="modRes"></div>'+
+    '</div>'+
+    '<div id="modMsg" style="flex:1;min-width:340px;position:sticky;top:16px"></div>'+
     '</div>';
   var inp=document.getElementById('modIn');
   var btn=document.getElementById('modBtn');
@@ -1025,11 +1028,13 @@ function recomputeModIF(){
   var b=window._modif;if(!b)return;
   var inp=document.getElementById('modAmt'),out=document.getElementById('modOut');
   if(!inp||!out)return;
+  var msgEl=document.getElementById('modMsg');
+  var clearMsg=function(){if(msgEl)msgEl.innerHTML='';};
   var inc=parseFloat(inp.value);
-  if(isNaN(inc)){out.innerHTML='<div style="font-size:12px;color:#be123c">Introduce el incremento del IF (un número en €).</div>';return;}
+  if(isNaN(inc)){clearMsg();out.innerHTML='<div style="font-size:12px;color:#be123c">Introduce el incremento del IF (un número en €).</div>';return;}
   var r2=function(x){return Math.round(x*100)/100;};
   var A=r2(b.importe_financiado_actual+inc);   // nuevo IF = IF inicial + incremento
-  if(A<=0){out.innerHTML='<div style="font-size:12px;color:#be123c">El nuevo IF resultante debe ser &gt; 0 (incremento demasiado negativo).</div>';return;}
+  if(A<=0){clearMsg();out.innerHTML='<div style="font-size:12px;color:#be123c">El nuevo IF resultante debe ser &gt; 0 (incremento demasiado negativo).</div>';return;}
   var rate=b.student_paga_coste?b.pct_coste_cuota/100:0;
   var costeCuota=A*rate;
   var totalCoste=r2(costeCuota*b.num_cuotas);
@@ -1060,6 +1065,46 @@ function recomputeModIF(){
       mkMeta('Cuotas pendientes',nPend)+
       mkMeta('Nueva cuota','= '+fmtEur(saldo)+' / '+nPend+(nPend>0?' = '+fmtEur(nuevaCuota):''))+
     '</div>';
+
+  // ── Mensaje listo para copiar/pegar (derecha) ──────────────────
+  if(msgEl){
+    var cw=function(n){return n===1?'cuota':'cuotas';};
+    if(nPend<1){
+      msgEl.innerHTML='<div class="card"><div class="card-lbl" style="margin-bottom:8px">Mensaje para el alumno</div>'+
+        '<div style="font-size:12px;color:#9ca3af">No quedan cuotas pendientes; no hay reparto que comunicar.</div></div>';
+    }else{
+      var paidPer=b.cuotas_pagadas>0?r2(b.importe_pagado/b.cuotas_pagadas):0;
+      var msg=
+        '• Nuevo importe financiado: '+fmtEur(A)+'\\n'+
+        '• Coste por cuota: '+fmtEur(r2(costeCuota))+'\\n'+
+        '• Total coste financiero ('+b.num_cuotas+' '+cw(b.num_cuotas)+'): '+fmtEur(totalCoste)+'\\n'+
+        '• Total a devolver: '+fmtEur(totalDevolver)+'\\n\\n';
+      if(b.cuotas_pagadas>0){
+        msg+='La alumna ya ha abonado '+b.cuotas_pagadas+' '+cw(b.cuotas_pagadas)+' de '+fmtEur(paidPer)+
+             ' (total: '+fmtEur(b.importe_pagado)+'), por lo que el saldo pendiente es de '+fmtEur(saldo)+
+             ', repartido en '+nPend+' '+cw(nPend)+' de '+fmtEur(nuevaCuota)+'.';
+      }else{
+        msg+='El saldo pendiente es de '+fmtEur(saldo)+', repartido en '+nPend+' '+cw(nPend)+' de '+fmtEur(nuevaCuota)+'.';
+      }
+      var ta=document.createElement('textarea');
+      ta.id='modMsgTxt';ta.readOnly=true;ta.value=msg;
+      ta.setAttribute('style','width:100%;box-sizing:border-box;height:210px;border:1px solid #e5e7eb;border-radius:6px;padding:10px 12px;font-size:13px;color:#374151;line-height:1.6;resize:vertical;font-family:inherit;background:#f9fafb');
+      msgEl.innerHTML='<div class="card">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
+          '<div class="card-lbl" style="margin:0">Mensaje para el alumno</div>'+
+          '<button class="calc-btn" style="padding:5px 14px;font-size:12px" onclick="copyModMsg(this)">Copiar</button>'+
+        '</div></div>';
+      msgEl.firstChild.appendChild(ta);
+    }
+  }
+}
+
+function copyModMsg(btn){
+  var t=document.getElementById('modMsgTxt');if(!t)return;
+  t.focus();t.select();try{t.setSelectionRange(0,99999);}catch(e){}
+  var done=function(){var o=btn.textContent;btn.textContent='¡Copiado!';setTimeout(function(){btn.textContent=o;},1500);};
+  var fail=function(){try{document.execCommand('copy');done();}catch(e){btn.textContent='Selecciona y copia';}};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t.value).then(done,fail);}else{fail();}
 }
 
 function loadIframe(navId, url, title){
