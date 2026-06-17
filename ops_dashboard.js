@@ -847,6 +847,7 @@ function doCalc(){
           '<div class="tbar" style="margin:0;padding:0 20px">'+
             '<button class="tab ctab act" data-ctab="tae" onclick="switchCalcTab(this)">A igual TAE</button>'+
             '<button class="tab ctab" data-ctab="full" onclick="switchCalcTab(this)">Incl. cte de gestión</button>'+
+            '<button class="tab ctab" data-ctab="reduce" onclick="switchCalcTab(this)">Reducir cuotas</button>'+
           '</div>'+
           '<div id="cpanel-tae" style="padding:18px 20px">'+
             '<div style="text-align:center;padding:8px 0 20px">'+
@@ -889,7 +890,18 @@ function doCalc(){
             '</div>'+
             warn+
           '</div>'+
+          '<div id="cpanel-reduce" style="display:none;padding:18px 20px">'+
+            '<p style="font-size:11px;color:#9ca3af;margin:0 0 14px;line-height:1.5">El alumno no paga un importe único: termina el préstamo en <b>menos cuotas</b> pagando una cuota mensual más alta. Se mantiene el mismo TAE contractual sobre el saldo pendiente, de modo que BCAS queda indemne.</p>'+
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'+
+              '<label style="font-size:12px;color:#374151;flex:1">Nuevas cuotas restantes</label>'+
+              '<input id="redIn" class="calc-in" type="number" min="1" max="'+m.cuotas_pendientes+'" step="1" value="'+m.cuotas_pendientes+'" style="max-width:90px;text-align:center" oninput="recomputeReduce()">'+
+            '</div>'+
+            '<div style="font-size:11px;color:#9ca3af;margin-bottom:16px">Plan actual: quedan <b>'+m.cuotas_pendientes+'</b> cuota'+(m.cuotas_pendientes>1?'s':'')+' de '+fmtEur(m.cuota_mensual)+'</div>'+
+            '<div id="redOut"></div>'+
+          '</div>'+
         '</div>';
+      window._calc={saldo:data.breakdown.saldo_bruto_pendiente,i:m.tasa_mensual_implicita,pend:m.cuotas_pendientes,cuotaOrig:m.cuota_mensual,tae:m.TAE_contractual};
+      recomputeReduce();
     })
     .catch(function(e){
       res.innerHTML='<div class="card" style="border-color:#fecaca;padding:16px"><p style="color:#be123c;font-size:13px;margin:0">Error de conexión: '+e.message+'</p></div>';
@@ -899,8 +911,43 @@ function doCalc(){
 function switchCalcTab(btn){
   var t=btn.dataset.ctab;
   document.querySelectorAll('.ctab').forEach(function(b){b.classList.toggle('act',b.dataset.ctab===t);});
-  document.getElementById('cpanel-tae').style.display=t==='tae'?'':'none';
-  document.getElementById('cpanel-full').style.display=t==='full'?'':'none';
+  ['tae','full','reduce'].forEach(function(p){
+    var el=document.getElementById('cpanel-'+p);
+    if(el)el.style.display=t===p?'':'none';
+  });
+}
+
+function recomputeReduce(){
+  var c=window._calc;if(!c)return;
+  var inp=document.getElementById('redIn'),out=document.getElementById('redOut');
+  if(!inp||!out)return;
+  var M=parseInt(inp.value,10);
+  if(!M||M<1){out.innerHTML='<div style="font-size:12px;color:#be123c">Introduce un número de cuotas válido (≥ 1).</div>';return;}
+  if(M>c.pend){M=c.pend;inp.value=M;}
+  var i=c.i,saldo=c.saldo;
+  var nuevaCuota=Math.abs(i)<1e-9?saldo/M:saldo*i/(1-Math.pow(1+i,-M));
+  var totalNuevo=nuevaCuota*M;
+  var totalPlan=c.cuotaOrig*c.pend;
+  var ahorro=totalPlan-totalNuevo;
+  var deltaCuota=nuevaCuota-c.cuotaOrig;
+  out.innerHTML=
+    '<div style="text-align:center;padding:8px 0 18px">'+
+      '<div class="card-lbl">Nueva cuota mensual</div>'+
+      '<div style="font-size:44px;font-weight:700;color:#0d9488;line-height:1.1">'+fmtEur(nuevaCuota)+'</div>'+
+      '<div style="font-size:11px;color:#9ca3af;margin-top:6px">terminar en <b>'+M+'</b> cuota'+(M>1?'s':'')+' &nbsp;·&nbsp; '+(deltaCuota>=0?'+':'')+fmtEur(deltaCuota)+' vs cuota actual</div>'+
+    '</div>'+
+    '<div style="border-top:1px solid #e5e7eb;padding-top:14px">'+
+      '<div class="card-lbl">Comparativa</div>'+
+      mkBrow('Total a pagar (nuevo plan)',totalNuevo,true)+
+      mkBrow('Total restante (plan actual)',totalPlan,false)+
+      mkBrow('Ahorro en intereses para el alumno',ahorro,false)+
+    '</div>'+
+    '<div style="border-top:1px solid #e5e7eb;padding-top:14px;margin-top:8px">'+
+      '<div class="card-lbl">Datos del cálculo</div>'+
+      mkMeta('Saldo pendiente (base)',fmtEur(saldo))+
+      mkMeta('TAE contractual mantenido',(c.tae*100).toFixed(2)+'%')+
+      mkMeta('Cuota mensual original',fmtEur(c.cuotaOrig))+
+    '</div>';
 }
 
 function loadIframe(navId, url, title){
