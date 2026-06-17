@@ -992,7 +992,6 @@ function doModIF(){
         return;
       }
       window._modif=data;
-      var sugerido=Math.round(data.importe_financiado_actual);
       res.innerHTML=
         '<div class="card" style="padding:0;overflow:hidden">'+
           '<div style="padding:18px 20px;border-bottom:1px solid #e5e7eb">'+
@@ -1007,9 +1006,10 @@ function doModIF(){
           '</div>'+
           '<div style="padding:18px 20px">'+
             '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'+
-              '<label style="font-size:12px;color:#374151;flex:1">Nuevo importe financiado</label>'+
-              '<input id="modAmt" class="calc-in" type="number" min="0" step="1" value="'+sugerido+'" style="max-width:130px;text-align:center" oninput="recomputeModIF()">'+
+              '<label style="font-size:12px;color:#374151;flex:1">Incremento del importe financiado (€)</label>'+
+              '<input id="modAmt" class="calc-in" type="number" min="0" step="1" value="0" placeholder="0" style="max-width:130px;text-align:center" oninput="recomputeModIF()">'+
             '</div>'+
+            '<div style="font-size:11px;color:#9ca3af;margin-bottom:8px">IF inicial <b>'+fmtEur(data.importe_financiado_actual)+'</b> + incremento = nuevo IF (se calcula abajo).</div>'+
             (data.cuotas_pendientes<1?'<div style="font-size:11px;color:#be123c;margin-bottom:8px">No quedan cuotas pendientes: el préstamo ya está pagado.</div>':'<div style="font-size:11px;color:#9ca3af;margin-bottom:8px">El saldo se repartirá entre <b>'+data.cuotas_pendientes+'</b> cuota'+(data.cuotas_pendientes>1?'s':'')+' pendiente'+(data.cuotas_pendientes>1?'s':'')+'.</div>')+
             '<div id="modOut"></div>'+
           '</div>'+
@@ -1025,9 +1025,11 @@ function recomputeModIF(){
   var b=window._modif;if(!b)return;
   var inp=document.getElementById('modAmt'),out=document.getElementById('modOut');
   if(!inp||!out)return;
-  var A=parseFloat(inp.value);
-  if(isNaN(A)||A<=0){out.innerHTML='<div style="font-size:12px;color:#be123c">Introduce un importe financiado válido (&gt; 0).</div>';return;}
+  var inc=parseFloat(inp.value);
+  if(isNaN(inc)){out.innerHTML='<div style="font-size:12px;color:#be123c">Introduce el incremento del IF (un número en €).</div>';return;}
   var r2=function(x){return Math.round(x*100)/100;};
+  var A=r2(b.importe_financiado_actual+inc);   // nuevo IF = IF inicial + incremento
+  if(A<=0){out.innerHTML='<div style="font-size:12px;color:#be123c">El nuevo IF resultante debe ser &gt; 0 (incremento demasiado negativo).</div>';return;}
   var rate=b.student_paga_coste?b.pct_coste_cuota/100:0;
   var costeCuota=A*rate;
   var totalCoste=r2(costeCuota*b.num_cuotas);
@@ -1044,6 +1046,8 @@ function recomputeModIF(){
     '</div>'+
     '<div style="border-top:1px solid #e5e7eb;padding-top:14px">'+
       '<div class="card-lbl">Nuevo préstamo</div>'+
+      mkBrow('IF inicial',b.importe_financiado_actual,false)+
+      mkBrow('Incremento aplicado',r2(inc),false)+
       mkBrow('Nuevo importe financiado',r2(A),true)+
       mkBrow('Coste por cuota',r2(costeCuota),false)+
       mkBrow('Total coste financiero ('+b.num_cuotas+' cuotas)',totalCoste,false)+
