@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Default ISA</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;background:#f9fafb;color:#111827;padding:20px 24px}
+h1{font-size:18px;font-weight:700;margin-bottom:2px}
+.sub{font-size:11px;color:#9ca3af;margin-bottom:16px}
+.fi{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:flex-end}
+.fi label{display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:3px}
+.fi select,.fi input{border:1px solid #e5e7eb;border-radius:6px;padding:6px 10px;font-size:12px;background:#fff;outline:none;color:#374151;min-width:150px}
+.fi select:focus,.fi input:focus{border-color:#0d9488;box-shadow:0 0 0 3px rgba(13,148,136,.08)}
+.btn{background:#0d9488;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer}
+.btn:hover{background:#0f766e}
+.btn.ghost{background:#fff;color:#374151;border:1px solid #e5e7eb}
+.btn.ghost:hover{background:#f9fafb}
+.row{display:grid;grid-template-columns:repeat(3,1fr) 1.6fr;gap:12px;margin-bottom:14px}
+@media(max-width:1100px){.row{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.row{grid-template-columns:1fr}}
+.kpi{background:#fff;border-radius:8px;padding:16px 18px;border:1px solid #e5e7eb}
+.kpi .l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#9ca3af;margin-bottom:8px}
+.kpi .v{font-size:28px;font-weight:700;color:#dc2626;line-height:1}
+.kpi .n{font-size:10px;color:#9ca3af;margin-top:6px}
+.mbox{background:#fff;border-radius:8px;padding:16px 18px;border:1px solid #e5e7eb;display:flex;flex-direction:column}
+.mbox .l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#9ca3af;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.mbox-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;flex:1}
+.mbox .mv{font-size:24px;font-weight:700;color:#111827;line-height:1}
+.mbox .ml{font-size:10px;color:#6b7280;margin-bottom:4px;font-weight:600}
+.mbox .cmp{font-size:10px;color:#9ca3af;margin-top:6px}
+.dp{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:6px}
+.dp.pos{background:#fee2e2;color:#dc2626}.dp.neg{background:#d1fae5;color:#059669}.dp.eq{background:#f3f4f6;color:#6b7280}
+.card{background:#fff;border-radius:8px;padding:18px 20px;border:1px solid #e5e7eb;margin-bottom:14px}
+.card h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;margin-bottom:4px}
+.card .desc{font-size:11px;color:#9ca3af;margin-bottom:14px}
+.cw{position:relative;height:300px}
+.tc h2{font-size:13px;font-weight:600;color:#111827;text-transform:none;letter-spacing:0;display:flex;justify-content:space-between;align-items:center}
+.stbar{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.subtab{background:#fff;border:1px solid #e5e7eb;padding:5px 14px;font-size:11px;font-weight:500;color:#6b7280;cursor:pointer;border-radius:6px}
+.subtab:hover{background:#f0fdfa;border-color:#99f6e4;color:#0f766e}
+.subtab.act{background:#0d9488;color:#fff;border-color:#0d9488}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+th{text-align:left;padding:8px 10px;background:#f9fafb;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;font-size:10px;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0}
+td{padding:7px 10px;border-bottom:1px solid #f3f4f6;color:#374151}
+tr:hover td{background:#fafafa}
+.tabnum{font-variant-numeric:tabular-nums}
+.b{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
+.b-ob{background:#fef3c7;color:#92400e}.b-pay{background:#fee2e2;color:#991b1b}.b-amb{background:#fce7f3;color:#9d174d}
+.b-ok{background:#d1fae5;color:#065f46}.b-no{background:#f3f4f6;color:#6b7280}
+.b-st{background:#f0f9ff;color:#0369a1}
+.lk{color:#0d9488;text-decoration:none;font-weight:600;font-family:ui-monospace,monospace}
+.lk:hover{text-decoration:underline}
+.tg{cursor:pointer;border:none;border-radius:6px;padding:3px 9px;font-size:10px;font-weight:700}
+.tg.on{background:#d1fae5;color:#065f46}.tg.off{background:#fee2e2;color:#be123c}
+.cin{border:1px solid #e5e7eb;border-radius:5px;padding:3px 6px;font-size:11px;width:118px;color:#374151}
+.cin:focus{outline:none;border-color:#0d9488}
+.note{border:1px solid #e5e7eb;border-radius:5px;padding:3px 6px;font-size:11px;width:160px;color:#374151}
+.note:focus{outline:none;border-color:#0d9488}
+.dimp{font-weight:700}.d60{color:#dc2626}.d30{color:#ea580c}.d14{color:#d97706}.d0{color:#374151}
+.dcont{font-weight:700}.c7{color:#dc2626}.c4{color:#ea580c}.c2{color:#d97706}.c0{color:#059669}
+.muted{color:#9ca3af}
+.loading{text-align:center;padding:40px;color:#9ca3af;font-size:13px}
+.err{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px 16px;border-radius:8px;font-size:12px;margin-bottom:14px}
+</style></head>
+<body>
+<h1>Default ISA</h1>
+<div class="sub" id="meta">Seguimiento del default de la cartera ISA · línea roja (cronograma − pagando) / cronograma sobre obligados con cobro activo</div>
+
+<div class="fi">
+  <div><label>Escuela</label><select id="fSchool"><option value="">Todas</option></select></div>
+  <div><label>Financiador</label><select id="fFin"><option value="">Todos</option></select></div>
+  <button class="btn ghost" onclick="loadData()">Aplicar</button>
+  <button class="btn ghost" onclick="exportCSV()">Exportar CSV</button>
+</div>
+
+<div id="errBox"></div>
+
+<div class="row">
+  <div class="kpi"><div class="l">Default mes 12</div><div class="v" id="m12">—</div><div class="n" id="m12n"></div></div>
+  <div class="kpi"><div class="l">Default mes 24</div><div class="v" id="m24">—</div><div class="n" id="m24n"></div></div>
+  <div class="kpi"><div class="l">Default mes 30</div><div class="v" id="m30">—</div><div class="n" id="m30n"></div></div>
+  <div class="mbox">
+    <div class="l"><span>Default del mes (cartera completa)</span><button class="btn" style="padding:3px 10px;font-size:10px" onclick="capture()">Congelar mes</button></div>
+    <div class="mbox-grid">
+      <div>
+        <div class="ml">% default crédito <span id="curYm" class="muted"></span></div>
+        <div class="mv" id="mbPct">—<span class="dp" id="mbPctD"></span></div>
+        <div class="cmp" id="mbPctCmp"></div>
+      </div>
+      <div>
+        <div class="ml">Nº personas</div>
+        <div class="mv" id="mbHc">—<span class="dp" id="mbHcD"></span></div>
+        <div class="cmp" id="mbHcCmp"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Curva de default ISA · % por mes post-grado</h2>
+  <div class="desc">Default crédito = (obligados con cobro activo − pagando) / obligados con cobro activo, por mes desde graduación.</div>
+  <div class="cw"><canvas id="chart"></canvas></div>
+</div>
+
+<div class="card tc">
+  <h2 style="margin-bottom:0">Listado de gente en default <em style="font-weight:400;font-size:11px;color:#9ca3af" id="rowCount"></em></h2>
+  <div class="stbar" id="groupTabs"></div>
+  <div class="tw">
+    <table id="tbl">
+      <thead><tr>
+        <th>Loan</th><th>Email</th><th>Grupo</th><th>Categoría deudor</th>
+        <th>Cuotas imp.</th><th>Importe adeudado</th>
+        <th>Empleabilidad</th><th>Alta SS</th><th>Supera umbral</th><th>Últ. salario</th><th>Escuela</th>
+        <th>F. impago</th><th>Días imp.</th><th>Contactado</th><th>F. contacto</th><th>Días cont.</th><th>Notas</th>
+      </tr></thead>
+      <tbody id="tbody"><tr><td colspan="17" class="loading">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+var DATA = null, CHART = null, GROUP = 'todos';
+var API = '';
+
+function fmtPct(v){ return v==null ? '—' : v.toFixed(1)+'%'; }
+function fmtEur(v){ if(v==null) return '—'; return new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+function emplLabel(rank, bucket){
+  if(rank===2) return '<span class="b b-ok">Supera umbral</span>';
+  if(rank===1) return '<span class="b b-st">Con alta (bajo umbral)</span>';
+  if(rank===0) return '<span class="b b-no">Sin ingreso (paro)</span>';
+  return '<span class="muted">No medible</span>';
+}
+function siNo(v){
+  if(v===1) return '<span class="b b-ok">Sí</span>';
+  if(v===0) return '<span class="b b-no">No</span>';
+  return '<span class="muted">—</span>';
+}
+function grupoBadge(g){
+  if(g==='obligado') return '<span class="b b-ob">Obligado cobro activo</span>';
+  if(g==='payin')    return '<span class="b b-pay">Payins impagados</span>';
+  return '<span class="b b-amb">Ambos</span>';
+}
+function diasImpClass(d){ if(d==null)return 'd0'; if(d>=60)return 'd60'; if(d>=30)return 'd30'; if(d>=14)return 'd14'; return 'd0'; }
+function diasContClass(d){ if(d==null)return 'c7'; if(d>=7)return 'c7'; if(d>=4)return 'c4'; if(d>=2)return 'c2'; return 'c0'; }
+
+async function loadFilters(){
+  try{
+    var [sc, fn] = await Promise.all([
+      fetch(API+'/api/isa-default/schools').then(r=>r.json()),
+      fetch(API+'/api/isa-default/financiers').then(r=>r.json())
+    ]);
+    var ss=document.getElementById('fSchool');
+    sc.forEach(function(r){ var o=document.createElement('option'); o.value=r.school_id; o.textContent=r.name+' ('+r.n+')'; ss.appendChild(o); });
+    var fs=document.getElementById('fFin');
+    fn.forEach(function(r){ var o=document.createElement('option'); o.value=r.financier_id; o.textContent=r.name+' ('+r.n+')'; fs.appendChild(o); });
+  }catch(e){}
+}
+
+async function loadData(){
+  document.getElementById('errBox').innerHTML='';
+  document.getElementById('tbody').innerHTML='<tr><td colspan="17" class="loading">Cargando… (puede tardar, primera consulta)</td></tr>';
+  var sId=document.getElementById('fSchool').value, fId=document.getElementById('fFin').value;
+  var q=[]; if(sId)q.push('school_id='+sId); if(fId)q.push('financier_id='+fId);
+  try{
+    var res=await fetch(API+'/api/isa-default'+(q.length?'?'+q.join('&'):''));
+    if(!res.ok){ var e=await res.json().catch(()=>({})); throw new Error(e.error||('HTTP '+res.status)); }
+    DATA=await res.json();
+    render();
+  }catch(e){
+    document.getElementById('errBox').innerHTML='<div class="err">Error cargando datos: '+esc(e.message)+'</div>';
+    document.getElementById('tbody').innerHTML='<tr><td colspan="17" class="loading">—</td></tr>';
+  }
+}
+
+function render(){
+  var d=DATA; if(!d) return;
+  // KPIs
+  document.getElementById('m12').textContent=fmtPct(d.metrics.m12);
+  document.getElementById('m24').textContent=fmtPct(d.metrics.m24);
+  document.getElementById('m30').textContent=fmtPct(d.metrics.m30);
+  document.getElementById('m12n').textContent='n='+(d.curve[12]?d.curve[12].n:0)+' obligados';
+  document.getElementById('m24n').textContent='n='+(d.curve[24]?d.curve[24].n:0)+' obligados';
+  document.getElementById('m30n').textContent='n='+(d.curve[30]?d.curve[30].n:0)+' obligados';
+  // Month box
+  var mb=d.monthBox;
+  document.getElementById('curYm').textContent=mb.current_ym;
+  document.getElementById('mbPct').childNodes[0].nodeValue=fmtPct(mb.current.pct);
+  document.getElementById('mbHc').childNodes[0].nodeValue=mb.current.headcount;
+  renderDelta('mbPctD', mb.delta_pct, true);
+  renderDelta('mbHcD', mb.delta_headcount, false);
+  document.getElementById('mbPctCmp').textContent = mb.prev ? ('vs '+mb.prev_ym+': '+fmtPct(mb.prev.pct)) : 'sin mes anterior';
+  document.getElementById('mbHcCmp').textContent = mb.prev ? ('vs '+mb.prev_ym+': '+mb.prev.headcount+' pers.') : 'sin mes anterior';
+  // Meta
+  document.getElementById('meta').textContent='Cartera ISA: '+d.meta.total_isa_loans+' préstamos · '+d.meta.n_obligados_cobro_activo+' obligados con cobro activo · '+d.meta.n_default_redline+' en default (línea roja) · '+d.meta.n_listado+' en listado · datos a '+d.meta.as_of_date;
+  renderChart();
+  renderTabs();
+  renderTable();
+}
+
+function renderDelta(id, v, isPct){
+  var el=document.getElementById(id);
+  if(v==null){ el.textContent=''; el.className='dp'; return; }
+  var up=v>0, eq=v===0;
+  el.className='dp '+(eq?'eq':(up?'pos':'neg'));
+  el.textContent=(up?'▲ +':(v<0?'▼ ':''))+(isPct?(Math.abs(v).toFixed(1)+'pp'):Math.abs(v));
+}
+
+function renderChart(){
+  var ctx=document.getElementById('chart');
+  var labels=DATA.curve.map(function(c){return c.month;});
+  var pts=DATA.curve.map(function(c){return c.pct;});
+  if(CHART) CHART.destroy();
+  CHART=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{
+    label:'Default crédito %', data:pts, borderColor:'#dc2626', backgroundColor:'rgba(220,38,38,.06)',
+    borderWidth:2, borderDash:[6,4], pointRadius:2, pointBackgroundColor:'#dc2626', tension:.25, spanGaps:true, fill:true
+  }]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{
+      title:function(it){return 'Mes '+it[0].label+' post-grado';},
+      label:function(it){var c=DATA.curve[it.dataIndex]; return (it.parsed.y==null?'sin dato':it.parsed.y.toFixed(1)+'%')+' · n='+(c?c.n:0)+' obligados';}
+    }}},
+    scales:{x:{title:{display:true,text:'Mes post-graduación'},grid:{display:false}},
+            y:{title:{display:true,text:'% default'},beginAtZero:true,ticks:{callback:function(v){return v+'%';}}}}
+  }});
+}
+
+function renderTabs(){
+  var counts={todos:DATA.rows.length,obligado:0,payin:0,ambos:0};
+  DATA.rows.forEach(function(r){ counts[r.grupo]=(counts[r.grupo]||0)+1; });
+  var defs=[['todos','Todos'],['obligado','Obligados cobro activo'],['payin','Con payins impagados'],['ambos','Ambos']];
+  var html=defs.map(function(t){
+    var n = t[0]==='todos'?counts.todos:(counts[t[0]]||0);
+    return '<button class="subtab'+(GROUP===t[0]?' act':'')+'" onclick="setGroup(\''+t[0]+'\')">'+t[1]+' ('+n+')</button>';
+  }).join('');
+  document.getElementById('groupTabs').innerHTML=html;
+}
+function setGroup(g){ GROUP=g; renderTabs(); renderTable(); }
+
+function visibleRows(){
+  if(GROUP==='todos') return DATA.rows;
+  return DATA.rows.filter(function(r){return r.grupo===GROUP;});
+}
+
+function renderTable(){
+  var rows=visibleRows();
+  document.getElementById('rowCount').textContent='· '+rows.length+' préstamos';
+  if(!rows.length){ document.getElementById('tbody').innerHTML='<tr><td colspan="17" class="loading">Sin préstamos en este grupo.</td></tr>'; return; }
+  var html=rows.map(function(r){
+    var portal='https://portal.bcasapp.com/dashboard/loans/'+r.loan_id+'/detail';
+    var cuotas=(r.claimed_count||0)+(r.failed_count||0);
+    return '<tr data-loan="'+r.loan_id+'">'+
+      '<td><a class="lk" href="'+portal+'" target="_blank">#'+r.loan_id+'</a></td>'+
+      '<td>'+esc(r.email)+'</td>'+
+      '<td>'+grupoBadge(r.grupo)+'</td>'+
+      '<td><span class="b b-st">'+esc(r.categoria_deudor)+'</span></td>'+
+      '<td class="tabnum">'+(cuotas||0)+' <span class="muted">('+(r.claimed_count||0)+'c/'+(r.failed_count||0)+'f)</span></td>'+
+      '<td class="tabnum">'+fmtEur(r.total_outstanding)+'</td>'+
+      '<td>'+emplLabel(r.empleabilidad_rank, r.bucket)+'</td>'+
+      '<td>'+siNo(r.alta_ss)+'</td>'+
+      '<td>'+siNo(r.supera_umbral)+'</td>'+
+      '<td class="tabnum">'+(r.ultimo_salario!=null?fmtEur(r.ultimo_salario):'—')+'</td>'+
+      '<td>'+esc(r.school_name)+'</td>'+
+      '<td class="tabnum">'+(r.fecha_impago||'—')+'</td>'+
+      '<td class="tabnum dimp '+diasImpClass(r.dias_impago)+'">'+(r.dias_impago!=null?r.dias_impago+'d':'—')+'</td>'+
+      '<td><button class="tg '+(r.contacted?'on':'off')+'" onclick="toggleContact('+r.loan_id+')">'+(r.contacted?'Sí':'No')+'</button></td>'+
+      '<td><input class="cin" type="date" value="'+(r.fecha_contacto||'')+'" onchange="setContactDate('+r.loan_id+',this.value)"></td>'+
+      '<td class="tabnum dcont '+diasContClass(r.dias_contacto)+'">'+(r.dias_contacto!=null?(r.dias_contacto===0?'Hoy':r.dias_contacto+'d'):'—')+'</td>'+
+      '<td><input class="note" value="'+esc(r.notas||'')+'" placeholder="Nota…" onchange="setNote('+r.loan_id+',this.value)"></td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('tbody').innerHTML=html;
+}
+
+function rowById(id){ return DATA.rows.find(function(r){return r.loan_id===id;}); }
+async function patch(loanId, fields){
+  var body=Object.assign({loanId:loanId}, fields);
+  var res=await fetch(API+'/api/isa-default/state',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return res.ok;
+}
+function daysSince(iso){ if(!iso)return null; var t=Date.parse(iso+'T00:00:00Z'); if(isNaN(t))return null; var n=new Date(); var today=Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()); return Math.max(0,Math.floor((today-t)/86400000)); }
+
+async function toggleContact(id){
+  var r=rowById(id); if(!r)return;
+  var next=!r.contacted;
+  var fields={contacted:next};
+  if(next && !r.fecha_contacto){ var t=new Date().toISOString().slice(0,10); fields.lastContactDate=t; r.fecha_contacto=t; r.dias_contacto=0; }
+  r.contacted=next;
+  await patch(id,fields); renderTable();
+}
+async function setContactDate(id,val){
+  var r=rowById(id); if(!r)return;
+  r.fecha_contacto=val||null; r.dias_contacto=daysSince(val||null);
+  if(val) r.contacted=true;
+  await patch(id,{lastContactDate:val||null, contacted:r.contacted}); renderTable();
+}
+async function setNote(id,val){
+  var r=rowById(id); if(!r)return;
+  r.notas=val||null;
+  await patch(id,{comment:val||null});
+}
+
+async function capture(){
+  if(!confirm('¿Congelar el default del mes actual como snapshot estático?')) return;
+  try{ await fetch(API+'/api/isa-default/snapshot/capture',{method:'POST'}); alert('Snapshot del mes guardado.'); }
+  catch(e){ alert('Error: '+e.message); }
+}
+
+function exportCSV(){
+  var rows=visibleRows();
+  var cols=['loan_id','email','grupo','categoria_deudor','claimed_count','failed_count','total_outstanding','empleabilidad_rank','alta_ss','supera_umbral','ultimo_salario','school_name','fecha_impago','dias_impago','contacted','fecha_contacto','dias_contacto','notas'];
+  var lines=[cols.join(',')];
+  rows.forEach(function(r){
+    lines.push(cols.map(function(c){ var v=r[c]; if(v==null)v=''; v=String(v).replace(/"/g,'""'); return /[",\n]/.test(v)?'"'+v+'"':v; }).join(','));
+  });
+  var blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='default_isa_'+GROUP+'.csv'; a.click();
+}
+
+loadFilters();
+loadData();
+</script>
+</body></html>

@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "scripts": {
     "build": "node ops_dashboard.js",
-    "start": "node ops_dashboard.js"
+    "start": "node ops_dashboard.js",
+    "default-isa": "node default_isa_server.js"
   },
   "dependencies": {
     "decimal.js": "^10.4.3",
-    "pg": "^8.21.0"
+    "pg": "^8.21.0",
+    "xlsx": "^0.18.5"
   }
 }
