@@ -598,6 +598,10 @@ tr:hover td{background:#f9fafb}
           <div class="sbic">EM</div>
           <span class="sbnm">Empleabilidad</span>
         </div>
+        <div class="sbn" id="nav-defisa" onclick="loadIframe('defisa','http://localhost:3039','Default ISA')">
+          <div class="sbic">DI</div>
+          <span class="sbnm">Default ISA</span>
+        </div>
       </div>
     </div>
     <div class="sbs">

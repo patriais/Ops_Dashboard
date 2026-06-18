@@ -56,5 +56,11 @@
       "runtimeArgs": ["empleabilidad_v2_server.js"],
       "port": 3038
     }
+  ,{
+      "name": "default-isa",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["default_isa_server.js"],
+      "port": 3039
+    }
   ]
 }
