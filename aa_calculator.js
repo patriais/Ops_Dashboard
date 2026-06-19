@@ -38,6 +38,7 @@ try {
 const DEFAULT_CONFIG = {
   STRIPE_PCT:      '0.0135',   // comisión Stripe por cobro
   LINEA_PCT_ANUAL: '0.06',     // TIN anual de la línea de crédito BCAS
+  PAYMENT_METHOD:  'Stripe',   // método de pago AA: 'Stripe' | 'Transferencia' | 'Bizum' | 'Inespay'
   FECHA_HOY:       null,       // null = today() UTC; override en tests
 };
 
@@ -288,6 +289,7 @@ function calcularConDatos(data, cfg = {}) {
   const config = { ...DEFAULT_CONFIG, ...cfg };
   const STRIPE_PCT      = d(config.STRIPE_PCT);
   const LINEA_PCT_ANUAL = d(config.LINEA_PCT_ANUAL);
+  const PAYMENT_METHOD  = config.PAYMENT_METHOD || 'Stripe';
   const FECHA_HOY       = utcMid(config.FECHA_HOY || new Date());
 
   // ── Validaciones ────────────────────────────────────────────────────────
@@ -327,39 +329,45 @@ function calcularConDatos(data, cfg = {}) {
   const i_m     = d(i_m_raw);   // tasa mensual implícita
 
   const TAE_contractual = i_m.plus(1).pow(12).minus(1);
-  const tasa_diaria_TAE = TAE_contractual.plus(1).pow(d(1).div(365)).minus(1);
 
-  // ── Paso 2: Saldo bruto pendiente HOY ────────────────────────────────
+  // ── Paso 2: Saldo bruto pendiente ─────────────────────────────────────
   //
-  // Saldo en el cuadro de amortización justo después de la k-ésima cuota:
+  // FV(i_m, k-1, cuota, -P_ef): saldo del cuadro de amortización justo
+  // después de la k-ésima cuota pagada. Sin capitalización adicional a hoy.
+  //
   //   saldo(k) = P_ef·(1+i)^(k−1) − PMT·[(1+i)^(k−1) − 1] / i
   //
-  // Nota: con k=1 → saldo = P_ef (sólo se pagó la cuota t=0)  ✓
+  // Cuando C ≈ 0 el solver devuelve i_m ≈ 0 y la fórmula de la anualidad
+  // tendría 0/0. En ese límite degenera en amortización lineal: P − k·cuota.
+  // Umbral: si |i_m| < 1e-9 se usa el modelo lineal.
 
-  // Cuando C ≈ 0 el solver devuelve i_m ≈ 0, y la fórmula de la anualidad
-  // tendría 0/0.  En ese límite la fórmula degenera en amortización lineal:
-  //   saldo(k) = P − k·cuota
-  // Umbral: si i_m < 1e-9 (TAE < 0.001 %) usamos el modelo lineal.
-  const I_M_THRESHOLD = d('1e-9');
-  let saldo_tras_ultima_cuota;
-  if (i_m.abs().lessThan(I_M_THRESHOLD)) {
-    saldo_tras_ultima_cuota = P.minus(cuota_mensual.mul(k));
-  } else {
-    const factor_k = i_m.plus(1).pow(k - 1);
-    saldo_tras_ultima_cuota = principal_efectivo.mul(factor_k)
-      .minus(cuota_mensual.mul(factor_k.minus(1)).div(i_m));
+  // ── Paso 2 + 4 combinados: iterar con importes REALES pagados ─────────
+  //
+  // Usando importes teóricos el saldo quedaría incorrecto si el estudiante
+  // pagó más (o menos) que la cuota contractual. Se itera período a período
+  // aplicando cada pago real para obtener el saldo pendiente correcto y los
+  // intereses de línea devengados sobre ese saldo real.
+  //
+  // Período 1 (t=0): desembolso y primera cuota simultáneos; sin interés de línea.
+  // Período j (j=2..k): interés = saldo_tras_período_anterior × (LINEA_PCT_ANUAL/12)
+  //
+  // saldo[0] = P − cuotas[0].importe
+  // saldo[j] = saldo[j-1] × (1+i_m) − cuotas[j].importe   (j = 1..k-1)
+
+  const tasa_linea_mensual = LINEA_PCT_ANUAL.div(12);
+  let saldo_iter           = P.minus(cuotas[0].importe);   // tras primera cuota real
+  let intereses_linea_pagados = d(0);
+
+  for (let j = 1; j < k; j++) {
+    intereses_linea_pagados = intereses_linea_pagados.plus(saldo_iter.mul(tasa_linea_mensual));
+    saldo_iter = saldo_iter.mul(i_m.plus(1)).minus(cuotas[j].importe);
   }
+
+  const saldo_bruto_hoy = saldo_iter;
 
   const fecha_ultima_cuota      = cuotas[k - 1].fecha_cobro;
   const dias_desde_ultima_cuota = daysDiff(fecha_ultima_cuota, FECHA_HOY);
   const dias_desde_desembolso   = daysDiff(data.fecha_desembolso, FECHA_HOY);
-
-  // Capitalizar el saldo hasta hoy a la tasa diaria del TAE
-  // Si TAE ≈ 0, la capitalización diaria = saldo × 1 (sin interés)
-  const cap_factor = tasa_diaria_TAE.abs().lessThan(I_M_THRESHOLD)
-    ? d(1)
-    : tasa_diaria_TAE.plus(1).pow(dias_desde_ultima_cuota);
-  const saldo_bruto_hoy = saldo_tras_ultima_cuota.mul(cap_factor);
 
   // ── Paso 3: Stripe retenido en cuotas ya cobradas ─────────────────────
   // BCAS ya pagó esto a Stripe; no se recupera; se suma al importe AA.
@@ -368,36 +376,22 @@ function calcularConDatos(data, cfg = {}) {
     d(0)
   );
 
-  // ── Paso 4: Intereses de línea de crédito ya devengados ───────────────
+  // ── Paso 5: Importe neto y gross-up por método de pago ───────────────
   //
-  // BCAS dispuso P desde fecha_desembolso. Cada cobro neto de Stripe reduce
-  // el saldo dispuesto en la línea. Se calcula tramo a tramo (días reales).
+  // importe_neto = saldo bruto + costes ya incurridos por BCAS
+  // Si el pago AA se procesa por Stripe, BCAS debe cubrir una comisión
+  // adicional sobre el cobro (gross-up = importe_neto / (1 − STRIPE_PCT)).
+  // Para otros métodos (Transferencia, Bizum, Inespay) no hay comisión AA.
 
-  const tasa_diaria_linea = LINEA_PCT_ANUAL.div(365);
-  let saldo_linea             = P;
-  let intereses_linea_pagados = d(0);
-  let fecha_pivote            = data.fecha_desembolso;
-
-  for (const cuota of cuotas) {
-    const dias_tramo = daysDiff(fecha_pivote, cuota.fecha_cobro);
-    if (dias_tramo > 0) {
-      intereses_linea_pagados = intereses_linea_pagados
-        .plus(saldo_linea.mul(tasa_diaria_linea).mul(dias_tramo));
-    }
-    const cobro_neto = cuota.importe.mul(d(1).minus(STRIPE_PCT));
-    saldo_linea  = saldo_linea.minus(cobro_neto);
-    fecha_pivote = cuota.fecha_cobro;
+  const importe_neto = saldo_bruto_hoy.plus(stripe_retenido).plus(intereses_linea_pagados);
+  let importe_bruto, comision_pago_aa;
+  if (PAYMENT_METHOD === 'Stripe') {
+    importe_bruto    = importe_neto.div(d(1).minus(STRIPE_PCT));
+    comision_pago_aa = importe_bruto.minus(importe_neto);
+  } else {
+    importe_bruto    = importe_neto;
+    comision_pago_aa = d(0);
   }
-
-  // Tramo final: desde la última cuota hasta hoy
-  const dias_final = daysDiff(fecha_pivote, FECHA_HOY);
-  if (dias_final > 0) {
-    intereses_linea_pagados = intereses_linea_pagados
-      .plus(saldo_linea.mul(tasa_diaria_linea).mul(dias_final));
-  }
-
-  // ── Paso 5: Importe total ─────────────────────────────────────────────
-  const importe_total = saldo_bruto_hoy.plus(stripe_retenido).plus(intereses_linea_pagados);
 
   // ── Warnings ─────────────────────────────────────────────────────────
   const warnings = [];
@@ -432,11 +426,13 @@ function calcularConDatos(data, cfg = {}) {
   return {
     loan_id:                data.loan_id,
     fecha_calculo:          FECHA_HOY.toISOString().slice(0, 10),
-    importe_total_a_cobrar: r2(importe_total),
+    importe_bruto_a_cobrar: r2(importe_bruto),
     breakdown: {
       saldo_bruto_pendiente:   r2(saldo_bruto_hoy),
       stripe_retenido:         r2(stripe_retenido),
       intereses_linea_pagados: r2(intereses_linea_pagados),
+      importe_neto_a_recibir:  r2(importe_neto),
+      comision_pago_aa:        r2(comision_pago_aa),
     },
     metadata_calculo: {
       TAE_contractual:          r6(TAE_contractual),
@@ -446,6 +442,7 @@ function calcularConDatos(data, cfg = {}) {
       cuotas_pendientes:        N - k,
       dias_desde_desembolso,
       dias_desde_ultima_cuota,
+      metodo_pago:              PAYMENT_METHOD,
     },
     warnings,
   };
@@ -493,18 +490,17 @@ function runTest() {
   const res = calcularConDatos(testData, testCfg);
   console.log(JSON.stringify(res, null, 2));
 
-  // ── Ground truth checks ───────────────────────────────────────────────
-  // Nota: la spec da 5.59 para intereses_linea como aproximación manual.
-  // El algoritmo día-a-día exacto da ~5.92; ambos son consistentes con
-  // el total ≈4315 dentro de la tolerancia del spec.
+  // ── Ground truth checks (valores del Excel 20260602_AA_PaP.xlsx) ────────
   const checks = [
-    { label: 'TAE_contractual',          got: res.metadata_calculo.TAE_contractual,         exp: 0.2011,   tol: 0.001  },
-    { label: 'tasa_mensual_implicita',   got: res.metadata_calculo.tasa_mensual_implicita,  exp: 0.015384, tol: 0.00005 },
-    { label: 'cuota_mensual',            got: res.metadata_calculo.cuota_mensual,           exp: 305.19,   tol: 0.01   },
-    { label: 'saldo_bruto_pendiente',    got: res.breakdown.saldo_bruto_pendiente,          exp: 4301.56,  tol: 0.10   },
-    { label: 'stripe_retenido',          got: res.breakdown.stripe_retenido,                exp: 8.24,     tol: 0.05   },
-    { label: 'intereses_linea_pagados',  got: res.breakdown.intereses_linea_pagados,        exp: 5.92,     tol: 0.10   },
-    { label: 'importe_total_a_cobrar',   got: res.importe_total_a_cobrar,                   exp: 4315.70,  tol: 0.50   },
+    { label: 'TAE_contractual',          got: res.metadata_calculo.TAE_contractual,          exp: 0.2011,   tol: 0.001  },
+    { label: 'tasa_mensual_implicita',   got: res.metadata_calculo.tasa_mensual_implicita,   exp: 0.015384, tol: 0.00005 },
+    { label: 'cuota_mensual',            got: res.metadata_calculo.cuota_mensual,            exp: 305.19,   tol: 0.01   },
+    { label: 'saldo_bruto_pendiente',    got: res.breakdown.saldo_bruto_pendiente,           exp: 4299.40,  tol: 0.10   },
+    { label: 'stripe_retenido',          got: res.breakdown.stripe_retenido,                 exp: 8.24,     tol: 0.05   },
+    { label: 'intereses_linea_pagados',  got: res.breakdown.intereses_linea_pagados,         exp: 22.67,    tol: 0.05   },
+    { label: 'importe_neto_a_recibir',   got: res.breakdown.importe_neto_a_recibir,          exp: 4330.31,  tol: 0.15   },
+    { label: 'comision_pago_aa',         got: res.breakdown.comision_pago_aa,                exp: 59.26,    tol: 0.20   },
+    { label: 'importe_bruto_a_cobrar',   got: res.importe_bruto_a_cobrar,                    exp: 4389.58,  tol: 0.30   },
   ];
 
   console.log('\n── Verificación contra ground truth ──────────────────');
