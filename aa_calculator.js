@@ -194,13 +194,13 @@ async function fetchLoanData(loanId) {
         coste_por_cuota = cuota_ref.minus(importe_financiado.div(num_total_cuotas));
       }
 
-      // Cuotas cobradas: sólo periódicas
+      // Cuotas cobradas: periodic + simple (migraciones históricas usan 'simple')
       const paidRes = await db.query(
         `SELECT amount,
                 COALESCE(collection_date, theorical_date) AS fecha_cobro
          FROM payin_stats
          WHERE loan_id = $1
-           AND payin_type = 'periodic'
+           AND payin_type IN ('periodic', 'simple')
            AND payin_status IN ('paid', 'compensated')
          ORDER BY COALESCE(collection_date, theorical_date) ASC`,
         [loanId]
