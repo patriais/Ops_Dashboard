@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Offsite BCAS · 16–17 julio</title>
+<meta name="description" content="Toda la info del offsite de BCAS: la casa, cómo llegar, qué llevar, el equipo, la agenda del día y los juegos.">
+
+<!-- App / home-screen -->
+<meta name="theme-color" content="#0d9488">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Offsite BCAS">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230d9488'/%3E%3Cpath d='M22 52 50 28l28 24v22a4 4 0 0 1-4 4H26a4 4 0 0 1-4-4z' fill='none' stroke='white' stroke-width='6' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230d9488'/%3E%3Cpath d='M22 52 50 28l28 24v22a4 4 0 0 1-4 4H26a4 4 0 0 1-4-4z' fill='none' stroke='white' stroke-width='6' stroke-linejoin='round'/%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --teal:#0d9488; --teal-d:#0f766e; --teal-xd:#0b4742;
+  --terra:#e07a4f; --terra-d:#c25e36;
+  --ink:#13302c; --muted:#6b7a76; --line:#e7e3da;
+  --bg:#f7f4ec; --surface:#ffffff; --cream:#fbf9f3;
+  --ok:#0d9488; --shadow:0 1px 2px rgba(19,48,44,.05),0 8px 24px -12px rgba(19,48,44,.18);
+  --nav-h:64px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior-y:none;
+}
+.app{max-width:520px;margin:0 auto;min-height:100vh;background:var(--bg);
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px);position:relative;}
+h1,h2,h3,.serif{font-family:"Fraunces",Georgia,serif;letter-spacing:-.01em;}
+.eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--teal);}
+.muted{color:var(--muted);}
+a{color:var(--teal-d);}
+
+/* ---------- screens ---------- */
+.screen{display:none;animation:fade .35s ease both;}
+.screen.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.pad{padding:0 18px;}
+.section-title{display:flex;align-items:baseline;gap:8px;margin:26px 2px 12px;}
+.section-title h2{font-size:21px;font-weight:600;}
+.section-title .n{margin-left:auto;font-size:12px;color:var(--muted);font-family:"Inter";}
+
+/* ---------- hero ---------- */
+.hero{position:relative;color:#fff;overflow:hidden;
+  background:radial-gradient(120% 90% at 80% 0%,#15a394 0%,var(--teal) 42%,var(--teal-xd) 100%);
+  padding:calc(env(safe-area-inset-top) + 30px) 22px 30px;}
+.hero::after{content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;
+  background:
+   radial-gradient(40% 30% at 12% 88%,rgba(224,122,79,.55),transparent 70%),
+   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 39h40M39 0v40' stroke='%23ffffff' stroke-opacity='.05' stroke-width='1'/%3E%3C/svg%3E");}
+.hero>*{position:relative;z-index:1;}
+.hero .brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.16em;
+  font-size:12px;text-transform:uppercase;opacity:.92;}
+.hero .brand svg{width:22px;height:22px;}
+.hero h1{font-size:42px;line-height:.98;font-weight:600;margin:18px 0 6px;}
+.hero h1 em{font-style:italic;color:#ffe2d2;}
+.hero .tag{font-size:15px;opacity:.92;max-width:24ch;}
+.hero .when{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;
+  background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.22);
+  padding:7px 12px;border-radius:999px;backdrop-filter:blur(4px);}
+
+/* ---------- countdown ---------- */
+.countdown{margin:-22px 18px 0;position:relative;z-index:5;background:var(--surface);
+  border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:16px 16px 14px;}
+.countdown .lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);text-align:center;}
+.cd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+.cd-cell{text-align:center;background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:10px 4px;}
+.cd-cell .num{font-family:"Fraunces";font-size:26px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;color:var(--teal-d);}
+.cd-cell .u{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:5px;}
+.cd-live{text-align:center;font-size:13px;font-weight:600;color:var(--terra-d);padding:6px 0 2px;}
+
+/* ---------- cards ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;
+  box-shadow:var(--shadow);padding:18px;margin-bottom:14px;}
+.card h3{font-size:17px;font-weight:600;margin-bottom:6px;}
+.card p{font-size:14.5px;color:#37474a;}
+.card p+p{margin-top:10px;}
+
+/* info list */
+.facts{display:flex;flex-direction:column;gap:2px;margin-top:4px;}
+.fact{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px dashed var(--line);}
+.fact:last-child{border-bottom:0;}
+.fact .ic{font-size:19px;width:26px;text-align:center;flex:none;}
+.fact .k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);}
+.fact .v{font-size:14.5px;font-weight:500;}
+
+/* gallery */
+.gallery{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.gallery .ph{aspect-ratio:4/3;border-radius:14px;overflow:hidden;position:relative;
+  background:linear-gradient(135deg,#dfeeeb,#cfe4df);display:flex;align-items:center;justify-content:center;}
+.gallery .ph:first-child{grid-column:1/-1;aspect-ratio:16/9;}
+.gallery .ph img{width:100%;height:100%;object-fit:cover;display:block;}
+.gallery .ph .lbl{font-size:12px;color:var(--teal-d);font-weight:600;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.85;}
+.gallery .ph .lbl span:first-child{font-size:22px;}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  background:var(--teal);color:#fff;border:0;border-radius:12px;padding:14px 16px;
+  font-family:"Inter";font-size:15px;font-weight:600;cursor:pointer;text-decoration:none;transition:.15s;}
+.btn:active{transform:scale(.98);}
+.btn:hover{background:var(--teal-d);}
+.btn.ghost{background:var(--cream);color:var(--teal-d);border:1px solid var(--line);}
+.btn.terra{background:var(--terra);}
+.btn.terra:hover{background:var(--terra-d);}
+
+/* checklist */
+.check{list-style:none;}
+.check li{display:flex;align-items:center;gap:13px;padding:13px 2px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;}
+.check li:last-child{border-bottom:0;}
+.check .box{width:24px;height:24px;border:2px solid var(--line);border-radius:8px;flex:none;
+  display:flex;align-items:center;justify-content:center;transition:.15s;background:#fff;}
+.check .box svg{width:14px;height:14px;stroke:#fff;stroke-width:3.5;fill:none;opacity:0;transition:.15s;
+  stroke-linecap:round;stroke-linejoin:round;}
+.check li .txt{font-size:15px;transition:.15s;}
+.check li .em{font-size:18px;}
+.check li.done .box{background:var(--teal);border-color:var(--teal);}
+.check li.done .box svg{opacity:1;}
+.check li.done .txt{color:var(--muted);text-decoration:line-through;}
+.progress{height:7px;background:var(--cream);border-radius:999px;overflow:hidden;margin:4px 0 16px;border:1px solid var(--line);}
+.progress>i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),#21b3a3);width:0;transition:width .4s ease;}
+
+/* timeline */
+.tl{position:relative;margin-left:6px;}
+.tl::before{content:"";position:absolute;left:6px;top:6px;bottom:14px;width:2px;background:var(--line);}
+.tl-day{font-family:"Fraunces";font-size:14px;font-weight:600;color:var(--terra-d);
+  margin:18px 0 8px;padding-left:26px;text-transform:uppercase;letter-spacing:.04em;}
+.tl-item{position:relative;padding:0 0 16px 26px;}
+.tl-item .dot{position:absolute;left:0;top:4px;width:14px;height:14px;border-radius:50%;
+  background:#fff;border:3px solid var(--teal);}
+.tl-item.tbd .dot{border-color:var(--muted);}
+.tl-item .time{font-size:13px;font-weight:700;color:var(--teal-d);font-variant-numeric:tabular-nums;}
+.tl-item .act{font-size:15.5px;font-weight:600;margin-top:1px;}
+.tl-item .det{font-size:13px;color:var(--muted);margin-top:1px;}
+.tl-item .em{margin-right:4px;}
+
+/* team */
+.team{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.member{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 12px;text-align:center;box-shadow:var(--shadow);}
+.avatar{width:58px;height:58px;border-radius:50%;margin:0 auto 9px;display:flex;align-items:center;justify-content:center;
+  font-family:"Fraunces";font-weight:600;font-size:21px;color:#fff;}
+.member .nm{font-size:14.5px;font-weight:600;}
+.member .rl{font-size:12px;color:var(--muted);margin-top:1px;}
+.member .em{font-size:13px;margin-top:6px;}
+
+/* games */
+.game{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
+  padding:18px;margin-bottom:14px;position:relative;overflow:hidden;}
+.game .gem{font-size:30px;}
+.game h3{font-size:18px;font-weight:600;margin:8px 0 4px;}
+.game .gd{font-size:14px;color:#37474a;}
+.game.locked .body{filter:blur(4px);opacity:.55;pointer-events:none;user-select:none;}
+.game .lock-ov{position:absolute;inset:0;background:rgba(251,249,243,.55);backdrop-filter:blur(2px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:18px;}
+.game:not(.locked) .lock-ov{display:none;}
+.game .lock-ov .lk{font-size:30px;}
+.game .lock-ov .lt{font-size:13px;font-weight:600;color:var(--ink);max-width:24ch;}
+.game .gp{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--terra-d);
+  background:#fcefe7;border:1px solid #f6dccd;display:inline-block;padding:4px 9px;border-radius:999px;margin-top:12px;}
+.unlock-row{display:flex;gap:8px;margin-top:10px;}
+.unlock-row input{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15px;
+  font-family:"Inter";color:var(--ink);outline:none;text-transform:uppercase;background:#fff;letter-spacing:.05em;}
+.unlock-row input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,.12);}
+.unlock-row button{flex:none;width:auto;padding:12px 18px;}
+.hint{font-size:12.5px;color:var(--muted);margin-top:8px;text-align:center;}
+.shake{animation:shake .4s;}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+
+.note{font-size:12px;color:var(--muted);background:var(--cream);border:1px dashed var(--line);
+  border-radius:12px;padding:10px 12px;margin-top:10px;line-height:1.45;}
+.note b{color:var(--teal-d);}
+
+/* footer */
+.foot{text-align:center;font-size:12px;color:var(--muted);padding:24px 18px 8px;}
+.foot .heart{color:var(--terra);}
+
+/* ---------- bottom nav ---------- */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:50;
+  height:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  padding-bottom:env(safe-area-inset-bottom);
+  background:rgba(255,255,255,.86);backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);display:flex;}
+.nav-inner{max-width:520px;margin:0 auto;width:100%;display:grid;grid-template-columns:repeat(5,1fr);}
+.nav button{background:none;border:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;color:var(--muted);font-family:"Inter";font-size:10.5px;font-weight:600;padding:8px 0;}
+.nav button svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;transition:.15s;}
+.nav button.on{color:var(--teal);}
+.nav button.on svg{transform:translateY(-1px);}
+.nav .badge{position:absolute;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ INICIO ============ -->
+  <section class="screen active" id="s-inicio">
+    <div class="hero">
+      <div class="brand">
+        <svg viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="22" fill="rgba(255,255,255,.16)"/><path d="M22 52 50 28l28 24v22a4 4 0 0 1-4 4H26a4 4 0 0 1-4-4z" stroke="#fff" stroke-width="6" stroke-linejoin="round"/></svg>
+        BCAS · Offsite
+      </div>
+      <h1>Nos vamos<br><em>de offsite</em></h1>
+      <p class="tag">Un día para desconectar, jugar y reconectar como equipo en una casa rural.</p>
+      <div class="when">
+        <span class="pill">📅 16–17 julio</span>
+        <span class="pill">🏡 Casa rural</span>
+        <span class="pill">🚗 Salida 15:00</span>
+      </div>
+    </div>
+
+    <div class="countdown">
+      <div class="lbl" id="cd-lbl">Cuenta atrás para la salida</div>
+      <div class="cd-grid" id="cd-grid">
+        <div class="cd-cell"><div class="num" id="cd-d">–</div><div class="u">días</div></div>
+        <div class="cd-cell"><div class="num" id="cd-h">–</div><div class="u">horas</div></div>
+        <div class="cd-cell"><div class="num" id="cd-m">–</div><div class="u">min</div></div>
+        <div class="cd-cell"><div class="num" id="cd-s">–</div><div class="u">seg</div></div>
+      </div>
+      <div class="cd-live" id="cd-live" style="display:none">🎉 ¡Es hoy! Que empiece el offsite</div>
+    </div>
+
+    <div class="pad">
+      <div class="section-title"><h2>Lo esencial</h2></div>
+      <div class="card">
+        <div class="facts">
+          <div class="fact"><div class="ic">📅</div><div><div class="k">Cuándo</div><div class="v">Jueves 16 de julio · salida de la oficina a las 15:00<br>Vuelta el viernes 17 a las 11:00</div></div></div>
+          <div class="fact"><div class="ic">🏡</div><div><div class="k">Dónde</div><div class="v">Casa rural <span class="muted">(dirección en la pestaña «Casa»)</span></div></div></div>
+          <div class="fact"><div class="ic">🏊</div><div><div class="k">Ambiente</div><div class="v">Piscina, actividades, cena y juegos. Ropa cómoda y bañador.</div></div></div>
+          <div class="fact"><div class="ic">🎁</div><div><div class="k">Sorpresas</div><div class="v">Iremos desbloqueando juegos en la pestaña «Juegos» durante el día.</div></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>¿Qué es esto?</h3>
+        <p>Esta mini-app tiene toda la info del offsite: cómo es la casa, cómo llegar, qué meter en la maleta, quién va y el plan del día. Guárdala en tu móvil y consúltala cuando quieras 👇</p>
+        <div class="note">📲 <b>Añádela a tu pantalla de inicio:</b> en el navegador pulsa <b>Compartir → «Añadir a inicio»</b> y la tendrás como una app más.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CASA ============ -->
+  <section class="screen" id="s-casa">
+    <div class="pad">
+      <div class="section-title"><span class="eyebrow">El sitio</span></div>
+      <div class="section-title" style="margin-top:4px"><h2>La casa rural</h2></div>
+
+      <div class="gallery" id="gallery"></div>
+
+      <div class="card" style="margin-top:14px">
+        <h3>Nuestra casa por un día</h3>
+        <p id="casa-desc">Una casa rural con piscina, zonas comunes amplias y mucho verde alrededor. El sitio perfecto para bajar el ritmo, darnos un baño y echar unas partidas. <span class="muted">(Descripción y fotos por confirmar.)</span></p>
+      </div>
+
+      <div class="section-title"><h2>Cómo llegar</h2></div>
+      <div class="card">
+        <div class="facts">
+          <div class="fact"><div class="ic">📍</div><div><div class="k">Dirección</div><div class="v" id="addr">Por confirmar</div></div></div>
+          <div class="fact"><div class="ic">🚗</div><div><div class="k">En coche</div><div class="v">Salimos juntos de la oficina a las 15:00. Organizaremos coches compartidos ese mismo día.</div></div></div>
+          <div class="fact"><div class="ic">⏱️</div><div><div class="k">Trayecto</div><div class="v">Aprox. 1 h desde la oficina (llegada prevista 16:00).</div></div></div>
+        </div>
+        <a class="btn" id="maps-btn" href="#" target="_blank" rel="noopener" style="margin-top:14px">
+          🧭 Abrir en Google Maps
+        </a>
+        <div class="note">✏️ <b>Para el organizador:</b> edita la dirección y el enlace del mapa en el bloque <b>CONFIG</b> al inicio del &lt;script&gt;.</div>
+      </div>
+
+      <div class="section-title"><h2>Qué llevar</h2><span class="n" id="pack-count"></span></div>
+      <div class="progress"><i id="pack-bar"></i></div>
+      <div class="card">
+        <ul class="check" id="packlist"></ul>
+      </div>
+      <p class="hint">Tu lista se guarda en este móvil ✅</p>
+    </div>
+  </section>
+
+  <!-- ============ AGENDA ============ -->
+  <section class="screen" id="s-agenda">
+    <div class="pad">
+      <div class="section-title"><span class="eyebrow">El plan</span></div>
+      <div class="section-title" style="margin-top:4px"><h2>Agenda del día</h2></div>
+      <div class="card">
+        <div class="tl" id="timeline"></div>
+      </div>
+      <p class="hint">🕗 Horario provisional · puede haber cambios sobre la marcha</p>
+    </div>
+  </section>
+
+  <!-- ============ EQUIPO ============ -->
+  <section class="screen" id="s-equipo">
+    <div class="pad">
+      <div class="section-title"><span class="eyebrow">Quién va</span></div>
+      <div class="section-title" style="margin-top:4px"><h2>Conoce al equipo</h2><span class="n" id="team-count"></span></div>
+      <div class="team" id="team"></div>
+      <div class="note" style="margin-top:14px">✏️ <b>Para el organizador:</b> añade o edita a las personas en el array <b>team</b> dentro de CONFIG.</div>
+    </div>
+  </section>
+
+  <!-- ============ JUEGOS ============ -->
+  <section class="screen" id="s-juegos">
+    <div class="pad">
+      <div class="section-title"><span class="eyebrow">A jugar</span></div>
+      <div class="section-title" style="margin-top:4px"><h2>Juegos</h2></div>
+      <div class="card" style="background:linear-gradient(135deg,#0d9488,#0b4742);color:#fff;border:0">
+        <h3 style="color:#fff">🔓 Se desbloquean durante el día</h3>
+        <p style="color:rgba(255,255,255,.9)">Cada juego está cerrado con un código. La organización lo irá compartiendo en cada momento del offsite. ¡Atento/a!</p>
+      </div>
+      <div id="games"></div>
+      <button class="btn ghost" id="reset-games" style="margin-top:6px">↺ Reiniciar juegos en este móvil</button>
+    </div>
+  </section>
+
+  <div class="foot">Hecho con <span class="heart">♥</span> para el equipo de BCAS</div>
+
+  <!-- ============ NAV ============ -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <button data-tab="inicio" class="on">
+        <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg>Inicio</button>
+      <button data-tab="casa">
+        <svg viewBox="0 0 24 24"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Casa</button>
+      <button data-tab="agenda">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agenda</button>
+      <button data-tab="equipo">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><path d="M16 4.5a3 3 0 0 1 0 6M21 20c0-2.6-1.5-4.2-4-4.8"/></svg>Equipo</button>
+      <button data-tab="juegos">
+        <svg viewBox="0 0 24 24"><path d="M6 11h4M8 9v4"/><circle cx="16" cy="10" r="1"/><circle cx="18" cy="13" r="1"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>Juegos</button>
+    </div>
+  </nav>
+</div>
+
+<script>
+/* =================================================================
+   CONFIG  ·  edita aquí todo el contenido del offsite
+   ================================================================= */
+const CONFIG = {
+  // Fecha/hora de salida (cuenta atrás). Formato ISO con zona horaria de Madrid (+02:00 en verano)
+  startISO: "2026-07-16T15:00:00+02:00",
+
+  // La casa
+  casa: {
+    direccion: "Por confirmar",          // ej: "Camino de la Dehesa 12, 28XXX Madrid"
+    mapsUrl: "https://www.google.com/maps/search/casa+rural",  // pega aquí el enlace de Google Maps
+    fotos: [                             // pega URLs de fotos; si está vacío se muestra un placeholder
+      // "https://.../foto1.jpg",
+    ],
+  },
+
+  // Qué llevar
+  packing: [
+    {e:"🩳", t:"Bañador y toalla"},
+    {e:"👟", t:"Ropa cómoda y calzado"},
+    {e:"🧥", t:"Algo de abrigo para la noche"},
+    {e:"🪥", t:"Neceser básico"},
+    {e:"🔋", t:"Cargador / batería externa"},
+    {e:"🕶️", t:"Gafas de sol y crema solar"},
+    {e:"🎲", t:"Tu juego de mesa favorito (opcional)"},
+    {e:"✨", t:"Buen rollo y ganas de jugar"},
+  ],
+
+  // Agenda
+  agenda: [
+    {day:"Jueves 16 de julio", items:[
+      {time:"15:00", e:"🚗", act:"Salida de la oficina", det:"Nos organizamos en coches compartidos."},
+      {time:"16:00", e:"🏡", act:"Llegada a la casa rural", det:"Repartimos habitaciones y soltamos las cosas."},
+      {time:"18:00", e:"🏊", act:"Tiempo libre · piscina", det:"A relajarse y darse un baño."},
+      {time:"21:00", e:"🎲", act:"Actividades", det:"Sorpresa del equipo 😉", tbd:true},
+      {time:"23:00", e:"🍽️", act:"Cena", det:"Cena todos juntos."},
+      {time:"00:00", e:"🍻", act:"Copas y juegos", det:"La noche es larga: juegos desbloqueables incluidos."},
+    ]},
+    {day:"Viernes 17 de julio", items:[
+      {time:"11:00", e:"👋", act:"Salida de vuelta a casa", det:"Recogemos y volvemos. ¡Fin del offsite!"},
+    ]},
+  ],
+
+  // Equipo (edita / añade personas). Los colores del avatar se generan solos.
+  team: [
+    {nm:"Tú", rl:"Equipo BCAS", em:"👋"},
+    {nm:"Por añadir", rl:"—", em:"🙂"},
+    {nm:"Por añadir", rl:"—", em:"🙂"},
+    {nm:"Por añadir", rl:"—", em:"🙂"},
+  ],
+
+  // Juegos · cada uno se desbloquea con su CÓDIGO (no distingue mayúsculas)
+  games: [
+    {e:"🕵️", t:"¿Quién es quién?", code:"BCAS1",
+     d:"Cada persona escribe un dato curioso de sí misma en secreto. Se leen en alto y hay que adivinar de quién es cada uno.",
+     players:"Todo el equipo"},
+    {e:"🧠", t:"Trivial BCAS", code:"PISCINA",
+     d:"Preguntas sobre la empresa, el equipo y cultura general. Por equipos. El que más acierte, gana.",
+     players:"2+ equipos"},
+    {e:"📸", t:"Reto fotográfico", code:"FOTO",
+     d:"Lista de fotos imposibles que conseguir durante el día (un salto sincronizado, alguien dormido, etc.). Gana quien complete más.",
+     players:"Por parejas"},
+    {e:"🐺", t:"Hombres lobo", code:"LUNA",
+     d:"El clásico juego de roles ocultos para la noche. Lobos, aldeanos, vidente… ¿sobrevivirás a la noche?",
+     players:"6+ personas"},
+  ],
+};
+
+/* =================================================================
+   APP
+   ================================================================= */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const store={
+  get:(k,d)=>{try{return JSON.parse(localStorage.getItem("bcas-offsite:"+k))??d}catch(e){return d}},
+  set:(k,v)=>localStorage.setItem("bcas-offsite:"+k,JSON.stringify(v)),
+};
+
+/* ---- navegación por pestañas ---- */
+$$(".nav button").forEach(b=>b.addEventListener("click",()=>{
+  const tab=b.dataset.tab;
+  $$(".nav button").forEach(x=>x.classList.toggle("on",x===b));
+  $$(".screen").forEach(s=>s.classList.toggle("active",s.id==="s-"+tab));
+  window.scrollTo({top:0,behavior:"instant"});
+}));
+
+/* ---- cuenta atrás ---- */
+const target=new Date(CONFIG.startISO).getTime();
+function tick(){
+  const diff=target-Date.now();
+  if(diff<=0){
+    $("#cd-grid").style.display="none";
+    $("#cd-lbl").style.display="none";
+    $("#cd-live").style.display="block";
+    return;
+  }
+  const d=Math.floor(diff/864e5),h=Math.floor(diff/36e5)%24,
+        m=Math.floor(diff/6e4)%60,s=Math.floor(diff/1e3)%60;
+  $("#cd-d").textContent=d;
+  $("#cd-h").textContent=String(h).padStart(2,"0");
+  $("#cd-m").textContent=String(m).padStart(2,"0");
+  $("#cd-s").textContent=String(s).padStart(2,"0");
+}
+tick();setInterval(tick,1000);
+
+/* ---- casa ---- */
+$("#addr").textContent=CONFIG.casa.direccion||"Por confirmar";
+$("#maps-btn").href=CONFIG.casa.mapsUrl||"#";
+(function gallery(){
+  const g=$("#gallery"),fotos=CONFIG.casa.fotos||[];
+  const slots=Math.max(fotos.length,5);
+  for(let i=0;i<slots;i++){
+    const d=document.createElement("div");d.className="ph";
+    if(fotos[i]){const im=new Image();im.src=fotos[i];im.alt="Foto de la casa";im.loading="lazy";d.appendChild(im);}
+    else{d.innerHTML='<div class="lbl"><span>🏞️</span><span>Foto '+(i+1)+'</span></div>';}
+    g.appendChild(d);
+  }
+})();
+
+/* ---- qué llevar (checklist persistente) ---- */
+(function packing(){
+  const ul=$("#packlist"),saved=store.get("pack",{});
+  CONFIG.packing.forEach((it,i)=>{
+    const li=document.createElement("li");
+    li.className=saved[i]?"done":"";
+    li.innerHTML='<span class="box"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span>'+
+                 '<span class="em">'+it.e+'</span><span class="txt">'+it.t+'</span>';
+    li.addEventListener("click",()=>{
+      li.classList.toggle("done");
+      const s=store.get("pack",{});s[i]=li.classList.contains("done");store.set("pack",s);
+      updatePack();
+    });
+    ul.appendChild(li);
+  });
+  updatePack();
+})();
+function updatePack(){
+  const all=$$("#packlist li"),done=$$("#packlist li.done").length;
+  $("#pack-bar").style.width=(all.length?done/all.length*100:0)+"%";
+  $("#pack-count").textContent=done+"/"+all.length;
+}
+
+/* ---- agenda ---- */
+(function agenda(){
+  const tl=$("#timeline");
+  CONFIG.agenda.forEach(d=>{
+    const day=document.createElement("div");day.className="tl-day";day.textContent=d.day;tl.appendChild(day);
+    d.items.forEach(it=>{
+      const el=document.createElement("div");el.className="tl-item"+(it.tbd?" tbd":"");
+      el.innerHTML='<span class="dot"></span><div class="time">'+it.time+'</div>'+
+        '<div class="act"><span class="em">'+it.e+'</span>'+it.act+'</div>'+
+        (it.det?'<div class="det">'+it.det+'</div>':'');
+      tl.appendChild(el);
+    });
+  });
+})();
+
+/* ---- equipo ---- */
+(function team(){
+  const wrap=$("#team"),palette=["#0d9488","#e07a4f","#0f766e","#15a394","#c25e36","#0b4742"];
+  CONFIG.team.forEach((m,i)=>{
+    const initials=m.nm.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+    const el=document.createElement("div");el.className="member";
+    el.innerHTML='<div class="avatar" style="background:'+palette[i%palette.length]+'">'+initials+'</div>'+
+      '<div class="nm">'+m.nm+'</div><div class="rl">'+m.rl+'</div>'+(m.em?'<div class="em">'+m.em+'</div>':'');
+    wrap.appendChild(el);
+  });
+  $("#team-count").textContent=CONFIG.team.length+" personas";
+})();
+
+/* ---- juegos (desbloqueo por código) ---- */
+(function games(){
+  const wrap=$("#games"),unlocked=store.get("games",{});
+  CONFIG.games.forEach((g,i)=>{
+    const open=!!unlocked[i];
+    const el=document.createElement("div");el.className="game"+(open?"":" locked");
+    el.innerHTML=
+      '<div class="body">'+
+        '<div class="gem">'+g.e+'</div>'+
+        '<h3>'+g.t+'</h3>'+
+        '<div class="gd">'+g.d+'</div>'+
+        '<div class="gp">👥 '+g.players+'</div>'+
+      '</div>'+
+      '<div class="lock-ov">'+
+        '<div class="lk">🔒</div>'+
+        '<div class="lt">Este juego se desbloqueará durante el offsite</div>'+
+        '<div class="unlock-row">'+
+          '<input type="text" placeholder="Código" autocomplete="off" autocapitalize="characters">'+
+          '<button class="btn terra">Abrir</button>'+
+        '</div>'+
+        '<div class="hint">Pídele el código a la organización 😉</div>'+
+      '</div>';
+    const input=$("input",el),btn=$("button",el);
+    function attempt(){
+      if(input.value.trim().toUpperCase()===g.code.toUpperCase()){
+        el.classList.remove("locked");
+        const u=store.get("games",{});u[i]=true;store.set("games",u);
+      }else{
+        const ov=$(".lock-ov",el);ov.classList.add("shake");setTimeout(()=>ov.classList.remove("shake"),420);
+        input.value="";input.placeholder="Código incorrecto";
+      }
+    }
+    btn.addEventListener("click",attempt);
+    input.addEventListener("keydown",e=>{if(e.key==="Enter")attempt();});
+    wrap.appendChild(el);
+  });
+})();
+$("#reset-games").addEventListener("click",()=>{
+  if(confirm("¿Volver a bloquear todos los juegos en este móvil?")){
+    store.set("games",{});location.reload();
+  }
+});
+</script>
+</body>
+</html>

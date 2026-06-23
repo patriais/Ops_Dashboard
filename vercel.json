@@ -5,6 +5,7 @@
     { "source": "/api/users",                                 "destination": "/api/index" },
     { "source": "/api/dt/:path*",                             "destination": "/api/default_traceability" },
     { "source": "/",                                          "destination": "/api/index" },
+    { "source": "/offsite",                                   "destination": "/offsite/index.html" },
     { "source": "/escuelas/cartera-alemania",                 "destination": "/api/germany" },
     { "source": "/escuelas/cartera-alemania/api/:path*",      "destination": "/api/germany" }
   ],
