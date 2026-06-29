@@ -264,6 +264,8 @@ a{color:var(--teal-d);}
       <div class="card" style="margin-top:14px">
         <h3>Nuestra casa por un día</h3>
         <p id="casa-desc">Una casa rural espectacular rodeada de naturaleza: amplio salón-comedor con techos de vigas de madera y mesa para todo el equipo, habitaciones cómodas y luminosas, una <b>piscina climatizada cubierta</b> con vistas al atardecer y terrazas con vistas a la sierra. El sitio perfecto para bajar el ritmo, darnos un baño y echar unas partidas.</p>
+        <a class="btn" id="airbnb-btn" href="#" target="_blank" rel="noopener" style="margin-top:14px">🏠 Ver la casa y todas las fotos</a>
+        <p class="hint" style="margin-top:8px">Se abre el anuncio en Airbnb con la galería completa.</p>
       </div>
 
       <div class="section-title"><h2>Cómo llegar</h2></div>
@@ -353,8 +355,9 @@ const CONFIG = {
 
   // La casa
   casa: {
-    direccion: "Por confirmar",          // ej: "Camino de la Dehesa 12, 28XXX Madrid"
+    direccion: "Alrededores de Madrid · ubicación exacta en el anuncio",
     mapsUrl: "https://www.google.com/maps/search/casa+rural",  // pega aquí el enlace de Google Maps
+    airbnbUrl: "https://www.airbnb.es/rooms/853543880531376310", // anuncio con todas las fotos
     // Galería: pon la URL de cada foto en "url". Si se deja vacío, se muestra un placeholder con su etiqueta.
     fotos: [
       {cap:"Salón-comedor",        e:"🛋️", url:""},
@@ -457,6 +460,7 @@ tick();setInterval(tick,1000);
 /* ---- casa ---- */
 $("#addr").textContent=CONFIG.casa.direccion||"Por confirmar";
 $("#maps-btn").href=CONFIG.casa.mapsUrl||"#";
+if(CONFIG.casa.airbnbUrl){$("#airbnb-btn").href=CONFIG.casa.airbnbUrl;}else{$("#airbnb-btn").style.display="none";}
 (function gallery(){
   const g=$("#gallery"),fotos=(CONFIG.casa.fotos||[]).map(f=>typeof f==="string"?{url:f,cap:"",e:"🏞️"}:f);
   fotos.forEach(f=>{
