@@ -108,6 +108,9 @@ a{color:var(--teal-d);}
 .gallery .ph .cap{position:absolute;left:0;right:0;bottom:0;padding:14px 10px 7px;
   font-size:11px;font-weight:600;color:#fff;
   background:linear-gradient(to top,rgba(11,71,66,.75),transparent);}
+.gallery .ph.more{text-decoration:none;background:linear-gradient(135deg,var(--teal),var(--teal-xd));}
+.gallery .ph.more .lbl{color:#fff;opacity:1;}
+.gallery .ph.more .lbl span:first-child{font-size:24px;}
 
 /* buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;
@@ -358,13 +361,11 @@ const CONFIG = {
     direccion: "Alrededores de Madrid · ubicación exacta en el anuncio",
     mapsUrl: "https://www.google.com/maps/search/casa+rural",  // pega aquí el enlace de Google Maps
     airbnbUrl: "https://www.airbnb.es/rooms/853543880531376310", // anuncio con todas las fotos
-    // Galería: pon la URL de cada foto en "url". Si se deja vacío, se muestra un placeholder con su etiqueta.
+    // Galería: pon la URL (o ruta) de cada foto en "url". Si se deja vacío, se muestra un placeholder con su etiqueta.
+    // Para añadir más, sube los archivos a offsite/fotos/ y agrega aquí su entrada.
     fotos: [
-      {cap:"Salón-comedor",        e:"🛋️", url:""},
-      {cap:"Habitaciones",         e:"🛏️", url:""},
-      {cap:"Habitaciones",         e:"🚪", url:""},
-      {cap:"Piscina climatizada",  e:"🏊", url:""},
-      {cap:"Terraza con vistas",   e:"🌄", url:""},
+      {cap:"Piscina climatizada", e:"🏊", url:"fotos/piscina.webp"},
+      {cap:"Habitaciones",        e:"🛏️", url:"fotos/habitacion.png"},
     ],
   },
 
@@ -473,6 +474,12 @@ if(CONFIG.casa.airbnbUrl){$("#airbnb-btn").href=CONFIG.casa.airbnbUrl;}else{$("#
     }
     g.appendChild(d);
   });
+  if(CONFIG.casa.airbnbUrl){
+    const a=document.createElement("a");a.className="ph more";a.href=CONFIG.casa.airbnbUrl;
+    a.target="_blank";a.rel="noopener";
+    a.innerHTML='<div class="lbl"><span>📷</span><span>Ver todas las fotos</span></div>';
+    g.appendChild(a);
+  }
 })();
 
 /* ---- qué llevar (checklist persistente) ---- */
