@@ -218,6 +218,13 @@ a{color:var(--teal-d);}
 .mine .who{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
 .mine .nm{font-size:18px;font-weight:600;font-family:"Fraunces";}
 
+/* ---- registro equipo ---- */
+.reg label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin:12px 0 4px;}
+.reg input{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15px;
+  font-family:"Inter";color:var(--ink);outline:none;background:#fff;}
+.reg input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,.12);}
+.reg .joinchips{margin-top:10px;}
+
 /* ---- leaderboard ---- */
 .lb{padding:8px 18px;}
 .lb-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);}
@@ -373,8 +380,8 @@ a{color:var(--teal-d);}
     <div class="pad">
       <div class="section-title"><span class="eyebrow">Quién va</span></div>
       <div class="section-title" style="margin-top:4px"><h2>Conoce al equipo</h2><span class="n" id="team-count"></span></div>
+      <div id="reg"></div>
       <div class="team" id="team"></div>
-      <div class="note" style="margin-top:14px">✏️ <b>Para el organizador:</b> añade o edita a las personas en el array <b>team</b> dentro de CONFIG.</div>
     </div>
   </section>
 
@@ -472,14 +479,6 @@ const CONFIG = {
     ]},
   ],
 
-  // Equipo (edita / añade personas). Los colores del avatar se generan solos.
-  team: [
-    {nm:"Tú", rl:"Equipo BCAS", em:"👋"},
-    {nm:"Por añadir", rl:"—", em:"🙂"},
-    {nm:"Por añadir", rl:"—", em:"🙂"},
-    {nm:"Por añadir", rl:"—", em:"🙂"},
-  ],
-
   // Juegos · cada uno se desbloquea con su CÓDIGO (no distingue mayúsculas)
   games: [
     {e:"🕵️", t:"¿Quién es quién?", code:"BCAS1",
@@ -522,7 +521,7 @@ $$(".nav button").forEach(b=>b.addEventListener("click",()=>{
   const tab=b.dataset.tab;
   $$(".nav button").forEach(x=>x.classList.toggle("on",x===b));
   $$(".screen").forEach(s=>s.classList.toggle("active",s.id==="s-"+tab));
-  if(tab==="ranking"&&window.Comp)Comp.refresh();
+  if((tab==="ranking"||tab==="equipo")&&window.Comp)Comp.refresh();
   window.scrollTo({top:0,behavior:"instant"});
 }));
 
@@ -607,19 +606,6 @@ function updatePack(){
   });
 })();
 
-/* ---- equipo ---- */
-(function team(){
-  const wrap=$("#team"),palette=["#0d9488","#e07a4f","#0f766e","#15a394","#c25e36","#0b4742"];
-  CONFIG.team.forEach((m,i)=>{
-    const initials=m.nm.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
-    const el=document.createElement("div");el.className="member";
-    el.innerHTML='<div class="avatar" style="background:'+palette[i%palette.length]+'">'+initials+'</div>'+
-      '<div class="nm">'+m.nm+'</div><div class="rl">'+m.rl+'</div>'+(m.em?'<div class="em">'+m.em+'</div>':'');
-    wrap.appendChild(el);
-  });
-  $("#team-count").textContent=CONFIG.team.length+" personas";
-})();
-
 /* ---- juegos (desbloqueo por código) ---- */
 (function games(){
   const wrap=$("#games"),unlocked=store.get("games",{});
@@ -667,14 +653,14 @@ $("#reset-games").addEventListener("click",()=>{
 const Comp = (function(){
   const C = CONFIG.competi || {};
   const PALETTE=["#0d9488","#e07a4f","#0f766e","#15a394","#c25e36","#1f6f8b","#9d6b53","#3b8c6e"];
-  const DEF={teams:[],log:[]};
+  const DEF={teams:[],log:[],people:[]};
   const shared = !!(C.firebaseUrl && C.firebaseUrl.trim());
   const fbUrl = shared ? C.firebaseUrl.trim().replace(/\/+$/,"")+"/board.json" : null;
   let cache = norm(store.get("comp",DEF));
   let lastSig="";
   const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   function arr(x){ if(Array.isArray(x))return x.filter(Boolean); if(x&&typeof x==="object")return Object.values(x).filter(Boolean); return []; }
-  function norm(j){ return {teams:arr(j&&j.teams),log:arr(j&&j.log)}; }
+  function norm(j){ return {teams:arr(j&&j.teams),log:arr(j&&j.log),people:arr(j&&j.people)}; }
   function totals(st){const t={};st.teams.forEach(tm=>t[tm.id]=0);st.log.forEach(e=>{t[e.team]=(t[e.team]||0)+(Number(e.pts)||0);});return t;}
   const colorFor=i=>PALETTE[i%PALETTE.length];
   const newId=()=>"t"+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
@@ -686,7 +672,7 @@ const Comp = (function(){
   }
   async function commit(mut){
     let cur = shared ? norm(await pull()) : norm(store.get("comp",DEF));
-    cur={teams:[...cur.teams],log:[...cur.log]};
+    cur={teams:[...cur.teams],log:[...cur.log],people:[...cur.people]};
     mut(cur); cache=cur; store.set("comp",cache);
     if(shared){ try{ await fetch(fbUrl,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(cur)}); }catch(e){} }
     renderAll();
@@ -759,7 +745,40 @@ const Comp = (function(){
     $("#adm-exit").addEventListener("click",()=>{store.set("admin",false);renderAdmin();});
   }
 
-  function renderAll(){renderBadge();renderBoard();renderMyTeam();renderAdmin();lastSig=JSON.stringify(cache);}
+  function teamColor(name){const t=cache.teams.find(x=>x.name.trim().toLowerCase()===String(name||"").trim().toLowerCase());return t?(t.color||"#0d9488"):"#9aa7a3";}
+  function renderEquipo(){
+    const reg=$("#reg");if(!reg)return;
+    const meId=store.get("me",null),me=cache.people.find(p=>p.id===meId),editing=store.get("meEdit",false);
+    if(me&&!editing){
+      reg.innerHTML='<div class="card"><div class="mine"><div class="big" style="background:'+teamColor(me.team)+'">'+esc((me.name.trim()[0]||"?").toUpperCase())+'</div>'+
+        '<div><div class="who">Ya estás en la lista</div><div class="nm">'+esc(me.name)+'</div><div style="font-size:12.5px;color:var(--muted)">'+(me.team?esc(me.team):'Sin equipo')+'</div></div></div>'+
+        '<button class="btn ghost" id="reg-edit" style="margin-top:12px">Editar mis datos</button></div>';
+      $("#reg-edit").addEventListener("click",()=>{store.set("meEdit",true);renderEquipo();});
+    }else{
+      const chips=cache.teams.map(t=>'<div class="ch" data-n="'+esc(t.name)+'"><span class="d" style="background:'+(t.color||"#0d9488")+'"></span>'+esc(t.name)+'</div>').join('');
+      reg.innerHTML='<div class="card reg"><h3 style="font-size:16px">👋 Preséntate</h3><p style="font-size:13.5px;color:#37474a;margin:4px 0">Regístrate para aparecer en la lista del equipo.</p>'+
+        '<label>Tu nombre</label><input id="reg-name" maxlength="32" placeholder="Nombre y apellido" value="'+(me?esc(me.name):'')+'">'+
+        '<label>Tu equipo</label><input id="reg-team" maxlength="28" placeholder="Nombre de tu equipo (opcional)" value="'+(me?esc(me.team||''):'')+'">'+
+        (cache.teams.length?'<div class="joinchips">'+chips+'</div>':'')+
+        '<button class="btn" id="reg-save" style="margin-top:14px">Guardar</button></div>';
+      reg.querySelectorAll(".joinchips .ch").forEach(c=>c.addEventListener("click",()=>{$("#reg-team").value=c.dataset.n;}));
+      $("#reg-save").addEventListener("click",async()=>{
+        const name=$("#reg-name").value.trim();if(!name)return;const team=$("#reg-team").value.trim();
+        if(me){await commit(s=>{const p=s.people.find(x=>x.id===meId);if(p){p.name=name;p.team=team;}});}
+        else{const id="p"+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);await commit(s=>{s.people.push({id,name,team});});store.set("me",id);}
+        store.set("meEdit",false);renderEquipo();
+      });
+    }
+    const wrap=$("#team"),ppl=cache.people;
+    const cnt=$("#team-count");if(cnt)cnt.textContent=ppl.length+(ppl.length===1?" persona":" personas");
+    if(!ppl.length){wrap.innerHTML='<div class="empty" style="grid-column:1/-1">Aún no se ha registrado nadie.<br>¡Sé la primera persona en presentarte! 👋</div>';return;}
+    wrap.innerHTML=ppl.map(p=>{
+      const ini=p.name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+      return '<div class="member"><div class="avatar" style="background:'+teamColor(p.team)+'">'+esc(ini)+'</div><div class="nm">'+esc(p.name)+'</div><div class="rl">'+(p.team?esc(p.team):'—')+'</div></div>';
+    }).join('');
+  }
+
+  function renderAll(){renderBadge();renderBoard();renderMyTeam();renderAdmin();renderEquipo();lastSig=JSON.stringify(cache);}
   async function refresh(){await pull();if(JSON.stringify(cache)!==lastSig)renderAll();}
 
   renderAll();refresh();
