@@ -105,6 +105,9 @@ a{color:var(--teal-d);}
 .gallery .ph img{width:100%;height:100%;object-fit:cover;display:block;}
 .gallery .ph .lbl{font-size:12px;color:var(--teal-d);font-weight:600;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.85;}
 .gallery .ph .lbl span:first-child{font-size:22px;}
+.gallery .ph .cap{position:absolute;left:0;right:0;bottom:0;padding:14px 10px 7px;
+  font-size:11px;font-weight:600;color:#fff;
+  background:linear-gradient(to top,rgba(11,71,66,.75),transparent);}
 
 /* buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;
@@ -237,7 +240,7 @@ a{color:var(--teal-d);}
         <div class="facts">
           <div class="fact"><div class="ic">📅</div><div><div class="k">Cuándo</div><div class="v">Jueves 16 de julio · salida de la oficina a las 15:00<br>Vuelta el viernes 17 a las 11:00</div></div></div>
           <div class="fact"><div class="ic">🏡</div><div><div class="k">Dónde</div><div class="v">Casa rural <span class="muted">(dirección en la pestaña «Casa»)</span></div></div></div>
-          <div class="fact"><div class="ic">🏊</div><div><div class="k">Ambiente</div><div class="v">Piscina, actividades, cena y juegos. Ropa cómoda y bañador.</div></div></div>
+          <div class="fact"><div class="ic">🏊</div><div><div class="k">Ambiente</div><div class="v">Piscina climatizada, actividades, cena y juegos. Ropa cómoda y bañador.</div></div></div>
           <div class="fact"><div class="ic">🎁</div><div><div class="k">Sorpresas</div><div class="v">Iremos desbloqueando juegos en la pestaña «Juegos» durante el día.</div></div></div>
         </div>
       </div>
@@ -260,7 +263,7 @@ a{color:var(--teal-d);}
 
       <div class="card" style="margin-top:14px">
         <h3>Nuestra casa por un día</h3>
-        <p id="casa-desc">Una casa rural con piscina, zonas comunes amplias y mucho verde alrededor. El sitio perfecto para bajar el ritmo, darnos un baño y echar unas partidas. <span class="muted">(Descripción y fotos por confirmar.)</span></p>
+        <p id="casa-desc">Una casa rural espectacular rodeada de naturaleza: amplio salón-comedor con techos de vigas de madera y mesa para todo el equipo, habitaciones cómodas y luminosas, una <b>piscina climatizada cubierta</b> con vistas al atardecer y terrazas con vistas a la sierra. El sitio perfecto para bajar el ritmo, darnos un baño y echar unas partidas.</p>
       </div>
 
       <div class="section-title"><h2>Cómo llegar</h2></div>
@@ -352,8 +355,13 @@ const CONFIG = {
   casa: {
     direccion: "Por confirmar",          // ej: "Camino de la Dehesa 12, 28XXX Madrid"
     mapsUrl: "https://www.google.com/maps/search/casa+rural",  // pega aquí el enlace de Google Maps
-    fotos: [                             // pega URLs de fotos; si está vacío se muestra un placeholder
-      // "https://.../foto1.jpg",
+    // Galería: pon la URL de cada foto en "url". Si se deja vacío, se muestra un placeholder con su etiqueta.
+    fotos: [
+      {cap:"Salón-comedor",        e:"🛋️", url:""},
+      {cap:"Habitaciones",         e:"🛏️", url:""},
+      {cap:"Habitaciones",         e:"🚪", url:""},
+      {cap:"Piscina climatizada",  e:"🏊", url:""},
+      {cap:"Terraza con vistas",   e:"🌄", url:""},
     ],
   },
 
@@ -450,14 +458,17 @@ tick();setInterval(tick,1000);
 $("#addr").textContent=CONFIG.casa.direccion||"Por confirmar";
 $("#maps-btn").href=CONFIG.casa.mapsUrl||"#";
 (function gallery(){
-  const g=$("#gallery"),fotos=CONFIG.casa.fotos||[];
-  const slots=Math.max(fotos.length,5);
-  for(let i=0;i<slots;i++){
+  const g=$("#gallery"),fotos=(CONFIG.casa.fotos||[]).map(f=>typeof f==="string"?{url:f,cap:"",e:"🏞️"}:f);
+  fotos.forEach(f=>{
     const d=document.createElement("div");d.className="ph";
-    if(fotos[i]){const im=new Image();im.src=fotos[i];im.alt="Foto de la casa";im.loading="lazy";d.appendChild(im);}
-    else{d.innerHTML='<div class="lbl"><span>🏞️</span><span>Foto '+(i+1)+'</span></div>';}
+    if(f.url){
+      const im=new Image();im.src=f.url;im.alt=f.cap||"Foto de la casa";im.loading="lazy";d.appendChild(im);
+      if(f.cap){const c=document.createElement("div");c.className="cap";c.textContent=f.cap;d.appendChild(c);}
+    }else{
+      d.innerHTML='<div class="lbl"><span>'+(f.e||"🏞️")+'</span><span>'+(f.cap||"Foto")+'</span></div>';
+    }
     g.appendChild(d);
-  }
+  });
 })();
 
 /* ---- qué llevar (checklist persistente) ---- */
