@@ -8,6 +8,55 @@ const DB_URL      = process.env.DB_URL;
 const HS_TOKEN    = process.env.HS_TOKEN;
 const AUTH_SECRET = process.env.AUTH_SECRET || 'dev-secret-please-set-in-vercel';
 
+// ── Vista compartida (externa): gate por contraseña ──────────────────────────
+// La cartera Alemania se comparte con terceros (p.ej. due diligence). Se protege
+// con una contraseña única (env SHARE_PASSWORD) y se OCULTA toda PII de alumnos
+// (emails + contacto). El detalle con PII vive en la plataforma interna.
+const SHARE_PASSWORD = process.env.SHARE_PASSWORD || '';
+const SHARE_TTL_MS = 7 * 24 * 3600 * 1000;
+
+function signShare() {
+  const payload = Buffer.from(JSON.stringify({ exp: Date.now() + SHARE_TTL_MS })).toString('base64url');
+  const sig = crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('hex');
+  return payload + '.' + sig;
+}
+function isUnlocked(req) {
+  const tok = parseCookies(req).share_tok;
+  if (!tok) return false;
+  const dot = tok.lastIndexOf('.');
+  if (dot < 0) return false;
+  const payload = tok.slice(0, dot), sig = tok.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('hex');
+  if (sig !== expected) return false;
+  try { return JSON.parse(Buffer.from(payload, 'base64url').toString()).exp > Date.now(); }
+  catch { return false; }
+}
+function readBody(req) {
+  return new Promise((resolve) => { let d = ''; req.on('data', c => d += c); req.on('end', () => resolve(d)); });
+}
+function lockPage(error) {
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cartera Alemania · BCAS</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0f172a;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.box{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:36px 34px;width:340px;text-align:center}
+.logo{width:46px;height:46px;background:#1e3a5f;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;margin:0 auto 16px}
+h1{font-size:16px;font-weight:700;margin-bottom:4px}.sub{font-size:12px;color:#94a3b8;margin-bottom:22px}
+input{width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:11px 13px;font-size:14px;color:#e2e8f0;outline:none;margin-bottom:12px}
+input:focus{border-color:#3b82f6}button{width:100%;background:#3b82f6;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:700;color:#fff;cursor:pointer}
+button:hover{background:#2563eb}.err{color:#f87171;font-size:12px;margin-bottom:10px;min-height:14px}</style></head>
+<body><div class="box"><div class="logo">DE</div>
+<h1>🇩🇪 Cartera Alemania · BCAS</h1><div class="sub">Acceso restringido — introduce la contraseña</div>
+<div class="err">${error || ''}</div>
+<input id="pw" type="password" placeholder="Contraseña" autofocus onkeydown="if(event.key==='Enter')go()">
+<button onclick="go()">Acceder</button></div>
+<script>
+async function go(){const pw=document.getElementById('pw').value;
+const r=await fetch('api/unlock',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pw})});
+if(r.ok)location.reload();else{document.querySelector('.err').textContent='Contraseña incorrecta';}}
+</script></body></html>`;
+}
+
 function parseCookies(req) {
   const out = {};
   (req.headers.cookie || '').split(';').forEach(c => {
@@ -187,7 +236,8 @@ async function getLoans({ loan_type, loan_status, graduated, search, page, size 
   if (graduated === 'yes') conds.push(`l.course_end_date <= NOW()`);
   if (graduated === 'no')  conds.push(`(l.course_end_date > NOW() OR l.course_end_date IS NULL)`);
   if (search) {
-    conds.push(`(l.email ILIKE $${pi} OR l.loan_id::text=$${pi} OR cs.name ILIKE $${pi})`);
+    // Vista compartida: búsqueda sin email (PII). Solo por ID de préstamo o curso.
+    conds.push(`(l.loan_id::text=$${pi} OR cs.name ILIKE $${pi})`);
     params.push(`%${search}%`); pi++;
   }
   const where = conds.join(' AND ');
@@ -198,7 +248,7 @@ async function getLoans({ loan_type, loan_status, graduated, search, page, size 
   );
   params.push(sz, (pg-1)*sz);
   const rows = await query(`
-    SELECT l.loan_id, l.school_id, l.email, l.loan_type, l.loan_status,
+    SELECT l.loan_id, l.school_id, l.loan_type, l.loan_status,
       cs.name AS course, l.total_amount_financed, l.total_disbursement,
       l.total_outstanding_balance, l.concession_date, l.course_end_date
     FROM loan_stats l LEFT JOIN course_stats cs ON l.course_id=cs.course_id
@@ -219,6 +269,27 @@ module.exports = async (req, res) => {
   const p = url.pathname.replace(/^\/escuelas\/cartera-alemania/, '') || '/';
 
   try {
+    // ── Unlock: valida la contraseña compartida y emite cookie firmada ──
+    if (p === '/api/unlock') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'method not allowed' });
+      if (!SHARE_PASSWORD) return res.status(503).json({ error: 'SHARE_PASSWORD no configurada' });
+      let pw = '';
+      try { pw = (JSON.parse((await readBody(req)) || '{}').pw) || ''; } catch { pw = ''; }
+      if (pw !== SHARE_PASSWORD) return res.status(401).json({ error: 'invalid' });
+      res.setHeader('Set-Cookie',
+        `share_tok=${signShare()}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SHARE_TTL_MS / 1000}`);
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── Gate: sin cookie válida no se sirve ni la página ni los datos ──
+    if (!isUnlocked(req)) {
+      if (p === '/' || p === '') {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.status(200).send(lockPage());
+      }
+      return res.status(401).json({ error: 'locked' });
+    }
+
     if (p === '/' || p === '') {
       const html = fs.readFileSync(path.join(__dirname, '..', 'germany_dashboard.html'), 'utf8');
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -237,10 +308,9 @@ module.exports = async (req, res) => {
       ]);
       return json(res, { summary, bySchool, status, monthly, payins, graduation, loans });
     }
+    // Contacto/PII deshabilitado en la vista compartida.
     if (p === '/api/hs-contact') {
-      const email = url.searchParams.get('email');
-      if (!email) return res.status(400).json({ error: 'email required' });
-      return json(res, await getHsContact(email) || {});
+      return res.status(403).json({ error: 'disabled in shared view' });
     }
     if (p === '/api/loans') {
       const q = url.searchParams;

@@ -327,7 +327,7 @@ tr:hover td{background:#f9fafb}
           <option value="yes">✓ Graduated</option>
           <option value="no">⏳ Still studying</option>
         </select>
-        <input id="fSearch" type="text" placeholder="Search email / ID / course..." oninput="debSearch()" />
+        <input id="fSearch" type="text" placeholder="Search ID / course..." oninput="debSearch()" />
       </div>
     </div>
     <div id="tableBody"></div>
@@ -703,27 +703,6 @@ function renderPayinSummary(rows){
   `;
 }
 
-// ── LinkedIn lookup ───────────────────────────────────────────────────────────
-async function openLinkedIn(btn, email) {
-  if (!email) return;
-  btn.disabled = true;
-  btn.textContent = '…';
-  try {
-    const d = await apiFetch('/api/hs-contact?email=' + encodeURIComponent(email));
-    if (d.linkedin_url) {
-      window.open(d.linkedin_url, '_blank');
-      btn.textContent = 'in';
-      btn.title = d.name || email;
-    } else {
-      btn.textContent = '?';
-      btn.title = 'Not found in HubSpot';
-    }
-  } catch(e) {
-    btn.textContent = '!';
-  }
-  btn.disabled = false;
-}
-
 // ── Filter from graduation table click ───────────────────────────────────────
 function filterFromGradTable(el) {
   const grad    = el.dataset.grad;    // 'yes' | 'no' | undefined
@@ -757,7 +736,6 @@ function renderLoans(d){
   const rows=d.rows.map(r=>`<tr>
     <td>${r.loan_id}</td>
     <td style="font-size:10px;color:#9ca3af">${SCHOOL_FLAGS[parseInt(r.school_id)]||''} ${SCHOOL_NAMES[parseInt(r.school_id)]||r.school_id}</td>
-    <td style="max-width:180px">${r.email||'—'}</td>
     <td><span class="ty ty-${r.loan_type}">${r.loan_type==='isa'?'ISA':'PaP'}</span></td>
     <td><span class="st st-${r.loan_status}">${STATUS_LABEL[r.loan_status]||r.loan_status}</span></td>
     <td style="max-width:180px">${r.course||'—'}</td>
@@ -766,11 +744,10 @@ function renderLoans(d){
     <td class="r">${fmt(r.total_outstanding_balance)}</td>
     <td>${fmtDate(r.concession_date)}</td>
     <td>${r.course_end_date ? `<span style="color:${new Date(r.course_end_date)<=new Date()?'#059669':'#6b7280'}">${fmtDate(r.course_end_date)}</span>` : '—'}</td>
-    <td><button class="li-btn" onclick="openLinkedIn(this,'${(r.email||'').replace(/'/g,"\\'")}')">in</button></td>
   </tr>`).join('');
   document.getElementById('tableBody').innerHTML=`<table><thead><tr>
-    <th>ID</th><th>School</th><th>Email</th><th>Type</th><th>Status</th><th>Course</th>
-    <th class="r">Financed</th><th class="r">Disbursed</th><th class="r">Outstanding</th><th>Concession date</th><th>Graduation date</th><th></th>
+    <th>ID</th><th>School</th><th>Type</th><th>Status</th><th>Course</th>
+    <th class="r">Financed</th><th class="r">Disbursed</th><th class="r">Outstanding</th><th>Concession date</th><th>Graduation date</th>
   </tr></thead><tbody>${rows}</tbody></table>`;
   const total=d.total,from=(currentPage-1)*d.size+1,to=Math.min(currentPage*d.size,total),tp=Math.ceil(total/d.size);
   document.getElementById('pager').style.display='flex';
@@ -866,7 +843,6 @@ async function downloadExcel() {
       .map(r => ({
         'Loan ID':                 r.loan_id,
         'School':                  SCHOOL_NAMES[parseInt(r.school_id)] || r.school_id,
-        'Email':                   r.email || '',
         'Type':                    r.loan_type === 'isa' ? 'ISA' : 'PaP',
         'Status':                  STATUS_EN[r.loan_status] || r.loan_status,
         'Course':                  r.course || '',
