@@ -273,8 +273,18 @@ module.exports = async (req, res) => {
     if (p === '/api/unlock') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'method not allowed' });
       if (!SHARE_PASSWORD) return res.status(503).json({ error: 'SHARE_PASSWORD no configurada' });
+      // El runtime de Vercel (@vercel/node) auto-parsea el body JSON en req.body
+      // y consume el stream → leerlo a mano da vacío. Priorizar req.body; fallback
+      // al stream (entornos sin auto-parse) y a ?pw= por si acaso.
       let pw = '';
-      try { pw = (JSON.parse((await readBody(req)) || '{}').pw) || ''; } catch { pw = ''; }
+      if (req.body && typeof req.body === 'object' && req.body.pw != null) {
+        pw = String(req.body.pw);
+      } else if (typeof req.body === 'string' && req.body.trim()) {
+        try { pw = String(JSON.parse(req.body).pw || ''); } catch { pw = ''; }
+      } else {
+        try { pw = String(JSON.parse((await readBody(req)) || '{}').pw || ''); } catch { pw = ''; }
+      }
+      if (!pw && url.searchParams.get('pw')) pw = url.searchParams.get('pw');
       if (pw !== SHARE_PASSWORD) return res.status(401).json({ error: 'invalid' });
       res.setHeader('Set-Cookie',
         `share_tok=${signShare()}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SHARE_TTL_MS / 1000}`);
