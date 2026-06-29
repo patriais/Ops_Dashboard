@@ -192,6 +192,64 @@ a{color:var(--teal-d);}
   border-radius:12px;padding:10px 12px;margin-top:10px;line-height:1.45;}
 .note b{color:var(--teal-d);}
 
+/* ---- competición: tarjeta especial "Tu equipo" ---- */
+.teamcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
+  margin-bottom:14px;overflow:hidden;position:relative;}
+.teamcard .hd{background:linear-gradient(135deg,var(--terra),var(--terra-d));color:#fff;padding:16px 18px;}
+.teamcard .hd .gem{font-size:26px;}
+.teamcard .hd h3{font-size:18px;font-weight:600;color:#fff;margin-top:4px;}
+.teamcard .hd p{font-size:13px;color:rgba(255,255,255,.92);margin-top:2px;}
+.teamcard .bd{padding:16px 18px;}
+.teamcard.locked .bd .lock{display:flex;}
+.teamcard .field{display:flex;gap:8px;margin-top:4px;}
+.teamcard input{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15px;
+  font-family:"Inter";color:var(--ink);outline:none;background:#fff;}
+.teamcard input:focus{border-color:var(--terra);box-shadow:0 0 0 3px rgba(224,122,79,.14);}
+.teamcard input.up{text-transform:uppercase;letter-spacing:.05em;}
+.teamcard button{flex:none;width:auto;}
+.joinchips{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;}
+.joinchips .ch{font-size:12.5px;font-weight:600;background:var(--cream);border:1px solid var(--line);
+  padding:7px 12px;border-radius:999px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+.joinchips .ch:active{transform:scale(.97);}
+.joinchips .ch .d{width:9px;height:9px;border-radius:50%;}
+.mine{display:flex;align-items:center;gap:12px;}
+.mine .big{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-family:"Fraunces";font-weight:600;font-size:20px;flex:none;}
+.mine .who{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+.mine .nm{font-size:18px;font-weight:600;font-family:"Fraunces";}
+
+/* ---- leaderboard ---- */
+.lb{padding:8px 18px;}
+.lb-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);}
+.lb-row:last-child{border-bottom:0;}
+.lb-pos{width:26px;text-align:center;font-size:18px;font-weight:700;color:var(--muted);font-family:"Fraunces";}
+.lb-dot{width:12px;height:12px;border-radius:50%;flex:none;}
+.lb-name{flex:1;font-size:15.5px;font-weight:600;}
+.lb-pts{font-size:18px;font-weight:700;color:var(--teal-d);font-family:"Fraunces";font-variant-numeric:tabular-nums;}
+.lb-pts span{font-size:11px;color:var(--muted);font-weight:600;margin-left:3px;font-family:"Inter";}
+.empty{text-align:center;color:var(--muted);font-size:14px;padding:8px 0;}
+
+/* ---- modo organizador ---- */
+.adm-team{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);}
+.adm-team:last-of-type{border-bottom:0;}
+.adm-team .nm{flex:1;font-size:15px;font-weight:600;}
+.adm-team .tot{font-size:15px;font-weight:700;color:var(--teal-d);font-variant-numeric:tabular-nums;min-width:42px;text-align:right;}
+.adm-team .del{background:none;border:0;color:#c25e36;font-size:17px;cursor:pointer;width:auto;padding:0 2px;flex:none;}
+.adm-give{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap;align-items:center;}
+.adm-give select,.adm-give input{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;
+  font-family:"Inter";color:var(--ink);outline:none;background:#fff;}
+.adm-give input{width:74px;text-align:center;}
+.adm-give select{flex:1;min-width:130px;}
+.adm-give select:focus,.adm-give input:focus{border-color:var(--teal);}
+.adm-row{display:flex;gap:8px;margin-top:10px;}
+.adm-row input{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15px;
+  font-family:"Inter";outline:none;}
+.adm-row input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,.12);}
+.adm-row button{flex:none;width:auto;}
+.badge-sync{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;font-family:"Inter";}
+.badge-sync.on{background:#d1fae5;color:#065f46;}
+.badge-sync.off{background:#fef3c7;color:#92400e;}
+
 /* footer */
 .foot{text-align:center;font-size:12px;color:var(--muted);padding:24px 18px 8px;}
 .foot .heart{color:var(--terra);}
@@ -202,10 +260,10 @@ a{color:var(--teal-d);}
   padding-bottom:env(safe-area-inset-bottom);
   background:rgba(255,255,255,.86);backdrop-filter:blur(14px);
   border-top:1px solid var(--line);display:flex;}
-.nav-inner{max-width:520px;margin:0 auto;width:100%;display:grid;grid-template-columns:repeat(5,1fr);}
+.nav-inner{max-width:520px;margin:0 auto;width:100%;display:grid;grid-template-columns:repeat(6,1fr);}
 .nav button{background:none;border:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:3px;color:var(--muted);font-family:"Inter";font-size:10.5px;font-weight:600;padding:8px 0;}
-.nav button svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;transition:.15s;}
+  justify-content:center;gap:3px;color:var(--muted);font-family:"Inter";font-size:9.5px;font-weight:600;padding:8px 0;}
+.nav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;transition:.15s;}
 .nav button.on{color:var(--teal);}
 .nav button.on svg{transform:translateY(-1px);}
 .nav .badge{position:absolute;}
@@ -329,8 +387,19 @@ a{color:var(--teal-d);}
         <h3 style="color:#fff">🔓 Se desbloquean durante el día</h3>
         <p style="color:rgba(255,255,255,.9)">Cada juego está cerrado con un código. La organización lo irá compartiendo en cada momento del offsite. ¡Atento/a!</p>
       </div>
+      <div id="myteam"></div>
       <div id="games"></div>
       <button class="btn ghost" id="reset-games" style="margin-top:6px">↺ Reiniciar juegos en este móvil</button>
+    </div>
+  </section>
+
+  <!-- ============ RANKING ============ -->
+  <section class="screen" id="s-ranking">
+    <div class="pad">
+      <div class="section-title"><span class="eyebrow">Competición</span></div>
+      <div class="section-title" style="margin-top:4px"><h2>Clasificación</h2><span class="n" id="sync-badge"></span></div>
+      <div id="board"></div>
+      <div id="admin"></div>
     </div>
   </section>
 
@@ -349,6 +418,8 @@ a{color:var(--teal-d);}
         <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><path d="M16 4.5a3 3 0 0 1 0 6M21 20c0-2.6-1.5-4.2-4-4.8"/></svg>Equipo</button>
       <button data-tab="juegos">
         <svg viewBox="0 0 24 24"><path d="M6 11h4M8 9v4"/><circle cx="16" cy="10" r="1"/><circle cx="18" cy="13" r="1"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>Juegos</button>
+      <button data-tab="ranking">
+        <svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M6 4h12v5a6 6 0 0 1-12 0V4z"/><path d="M6 6H3.5v1.5A3 3 0 0 0 6.5 10.5M18 6h2.5v1.5a3 3 0 0 1-3 3"/></svg>Ranking</button>
     </div>
   </nav>
 </div>
@@ -424,6 +495,16 @@ const CONFIG = {
      d:"El clásico juego de roles ocultos para la noche. Lobos, aldeanos, vidente… ¿sobrevivirás a la noche?",
      players:"6+ personas"},
   ],
+
+  // Competición por equipos + clasificación
+  competi: {
+    teamCode:  "EQUIPO",   // desbloquea la tarjeta "Tu equipo" (poner nombre al grupo)
+    adminCode: "PUNTOS",   // desbloquea el MODO ORGANIZADOR (asignar puntos) — guárdalo para ti
+    // Modo COMPARTIDO en vivo: pega aquí la URL de tu Firebase Realtime Database.
+    // Si se deja vacío, funciona en modo LOCAL (los datos solo se ven en este móvil).
+    firebaseUrl: "",       // ej: "https://offsite-bcas-default-rtdb.europe-west1.firebasedatabase.app"
+    activities: ["Primera actividad","Segunda actividad","Trivial","Reto fotográfico","Otra"],
+  },
 };
 
 /* =================================================================
@@ -441,6 +522,7 @@ $$(".nav button").forEach(b=>b.addEventListener("click",()=>{
   const tab=b.dataset.tab;
   $$(".nav button").forEach(x=>x.classList.toggle("on",x===b));
   $$(".screen").forEach(s=>s.classList.toggle("active",s.id==="s-"+tab));
+  if(tab==="ranking"&&window.Comp)Comp.refresh();
   window.scrollTo({top:0,behavior:"instant"});
 }));
 
@@ -580,6 +662,111 @@ $("#reset-games").addEventListener("click",()=>{
     store.set("games",{});location.reload();
   }
 });
+
+/* ---- competición + clasificación (modo local o compartido vía Firebase) ---- */
+const Comp = (function(){
+  const C = CONFIG.competi || {};
+  const PALETTE=["#0d9488","#e07a4f","#0f766e","#15a394","#c25e36","#1f6f8b","#9d6b53","#3b8c6e"];
+  const DEF={teams:[],log:[]};
+  const shared = !!(C.firebaseUrl && C.firebaseUrl.trim());
+  const fbUrl = shared ? C.firebaseUrl.trim().replace(/\/+$/,"")+"/board.json" : null;
+  let cache = norm(store.get("comp",DEF));
+  let lastSig="";
+  const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  function arr(x){ if(Array.isArray(x))return x.filter(Boolean); if(x&&typeof x==="object")return Object.values(x).filter(Boolean); return []; }
+  function norm(j){ return {teams:arr(j&&j.teams),log:arr(j&&j.log)}; }
+  function totals(st){const t={};st.teams.forEach(tm=>t[tm.id]=0);st.log.forEach(e=>{t[e.team]=(t[e.team]||0)+(Number(e.pts)||0);});return t;}
+  const colorFor=i=>PALETTE[i%PALETTE.length];
+  const newId=()=>"t"+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
+
+  async function pull(){
+    if(!shared){ cache=norm(store.get("comp",DEF)); return cache; }
+    try{ const r=await fetch(fbUrl,{cache:"no-store"}); cache=norm(await r.json()); store.set("comp",cache); }catch(e){}
+    return cache;
+  }
+  async function commit(mut){
+    let cur = shared ? norm(await pull()) : norm(store.get("comp",DEF));
+    cur={teams:[...cur.teams],log:[...cur.log]};
+    mut(cur); cache=cur; store.set("comp",cache);
+    if(shared){ try{ await fetch(fbUrl,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(cur)}); }catch(e){} }
+    renderAll();
+  }
+
+  function renderBadge(){const b=$("#sync-badge");if(!b)return;b.className="badge-sync "+(shared?"on":"off");b.textContent=shared?"● En vivo":"● Solo este móvil";}
+
+  function renderBoard(){
+    const st=cache,tot=totals(st),el=$("#board");if(!el)return;
+    const teams=[...st.teams].sort((a,b)=>(tot[b.id]||0)-(tot[a.id]||0));
+    if(!teams.length){el.innerHTML='<div class="card"><div class="empty">Aún no hay equipos.<br>Cuando se formen y empiece la competición, el ranking aparecerá aquí. 🏁</div></div>';return;}
+    const md=["🥇","🥈","🥉"];
+    el.innerHTML='<div class="card lb">'+teams.map((tm,i)=>
+      '<div class="lb-row"><div class="lb-pos">'+(md[i]||(i+1))+'</div><div class="lb-dot" style="background:'+(tm.color||"#0d9488")+'"></div>'+
+      '<div class="lb-name">'+esc(tm.name)+'</div><div class="lb-pts">'+(tot[tm.id]||0)+'<span>pts</span></div></div>').join('')+'</div>';
+  }
+
+  function renderMyTeam(){
+    const wrap=$("#myteam");if(!wrap)return;
+    const unlocked=store.get("teamUnlocked",false),myId=store.get("myTeam",null),st=cache;
+    const mine=st.teams.find(t=>t.id===myId);
+    if(!unlocked){
+      wrap.innerHTML='<div class="teamcard locked"><div class="hd"><div class="gem">🏳️</div><h3>Tu equipo</h3><p>Se desbloqueará cuando se formen los equipos.</p></div>'+
+        '<div class="bd"><div class="field"><input class="up" id="tm-code" placeholder="Código" autocomplete="off" autocapitalize="characters"><button class="btn terra" id="tm-unlock">Abrir</button></div>'+
+        '<div class="hint" style="margin-top:8px">Pídele el código a la organización 😉</div></div></div>';
+      const go=()=>{const v=$("#tm-code").value.trim().toUpperCase();if(v===String(C.teamCode||"").toUpperCase()){store.set("teamUnlocked",true);renderMyTeam();}else{const i=$("#tm-code");i.value="";i.placeholder="Código incorrecto";}};
+      $("#tm-unlock").addEventListener("click",go);$("#tm-code").addEventListener("keydown",e=>{if(e.key==="Enter")go();});return;
+    }
+    if(mine){
+      wrap.innerHTML='<div class="teamcard"><div class="hd"><div class="gem">🏳️</div><h3>Tu equipo</h3></div><div class="bd"><div class="mine">'+
+        '<div class="big" style="background:'+(mine.color||"#e07a4f")+'">'+esc((mine.name.trim()[0]||"?").toUpperCase())+'</div>'+
+        '<div><div class="who">Perteneces a</div><div class="nm">'+esc(mine.name)+'</div></div></div>'+
+        '<button class="btn ghost" id="tm-leave" style="margin-top:14px">Cambiar de equipo</button></div></div>';
+      $("#tm-leave").addEventListener("click",()=>{store.set("myTeam",null);renderMyTeam();});return;
+    }
+    const chips=st.teams.map(t=>'<div class="ch" data-id="'+t.id+'"><span class="d" style="background:'+(t.color||"#0d9488")+'"></span>'+esc(t.name)+'</div>').join('');
+    wrap.innerHTML='<div class="teamcard"><div class="hd"><div class="gem">🏳️</div><h3>Tu equipo</h3><p>Ponle nombre a tu grupo o únete a uno existente.</p></div>'+
+      '<div class="bd"><div class="field"><input id="tm-name" placeholder="Nombre de tu equipo" maxlength="28" autocomplete="off"><button class="btn terra" id="tm-create">Crear</button></div>'+
+      (st.teams.length?'<div class="who" style="margin-top:14px">O únete a uno</div><div class="joinchips">'+chips+'</div>':'')+'</div></div>';
+    const create=async()=>{const name=$("#tm-name").value.trim();if(!name)return;
+      const ex=cache.teams.find(t=>t.name.trim().toLowerCase()===name.toLowerCase());
+      if(ex){store.set("myTeam",ex.id);renderMyTeam();return;}
+      const id=newId();await commit(s=>{s.teams.push({id,name,color:colorFor(s.teams.length)});});store.set("myTeam",id);renderMyTeam();};
+    $("#tm-create").addEventListener("click",create);$("#tm-name").addEventListener("keydown",e=>{if(e.key==="Enter")create();});
+    wrap.querySelectorAll(".joinchips .ch").forEach(ch=>ch.addEventListener("click",()=>{store.set("myTeam",ch.dataset.id);renderMyTeam();}));
+  }
+
+  function renderAdmin(){
+    const wrap=$("#admin");if(!wrap)return;
+    const isAdmin=store.get("admin",false),st=cache,tot=totals(st);
+    if(!isAdmin){
+      wrap.innerHTML='<div class="card"><h3 style="font-size:15px">🔐 Modo organizador</h3><p style="font-size:13.5px;color:#37474a;margin:6px 0 10px">Para asignar puntos a los equipos. Solo para la organización.</p>'+
+        '<div class="adm-row"><input class="up" id="adm-code" placeholder="Código organizador" autocomplete="off" autocapitalize="characters"><button class="btn" id="adm-unlock">Entrar</button></div></div>';
+      const go=()=>{const v=$("#adm-code").value.trim().toUpperCase();if(v===String(C.adminCode||"").toUpperCase()){store.set("admin",true);renderAdmin();}else{const i=$("#adm-code");i.value="";i.placeholder="Código incorrecto";}};
+      $("#adm-unlock").addEventListener("click",go);$("#adm-code").addEventListener("keydown",e=>{if(e.key==="Enter")go();});return;
+    }
+    const acts=(C.activities||[]).map(a=>'<option>'+esc(a)+'</option>').join('');
+    const teamsHtml=st.teams.length?st.teams.map(tm=>'<div class="adm-team" data-id="'+tm.id+'"><span class="lb-dot" style="background:'+(tm.color||"#0d9488")+'"></span><span class="nm">'+esc(tm.name)+'</span><span class="tot">'+(tot[tm.id]||0)+'</span><button class="del" title="Eliminar">✕</button></div>').join(''):'<div class="empty">Aún no hay equipos. Añade el primero abajo.</div>';
+    wrap.innerHTML='<div class="card"><h3 style="font-size:15px">🛠️ Modo organizador</h3><div style="margin-top:8px">'+teamsHtml+'</div>'+
+      (st.teams.length?'<div class="who" style="margin-top:16px">Asignar puntos</div><div class="adm-give"><select id="adm-team">'+st.teams.map(t=>'<option value="'+t.id+'">'+esc(t.name)+'</option>').join('')+'</select><select id="adm-act">'+acts+'</select><input id="adm-pts" type="number" inputmode="numeric" value="10"><button class="btn" id="adm-add" style="flex:1">Sumar</button></div>':'')+
+      '<div class="who" style="margin-top:16px">Añadir equipo</div><div class="adm-row"><input id="adm-newteam" placeholder="Nombre del equipo" maxlength="28"><button class="btn ghost" id="adm-newbtn">Añadir</button></div>'+
+      '<button class="btn ghost" id="adm-reset" style="margin-top:14px;color:#c25e36">↺ Reiniciar competición</button>'+
+      '<button class="btn ghost" id="adm-exit" style="margin-top:8px">Salir del modo organizador</button></div>';
+    const addTeam=async()=>{const n=$("#adm-newteam").value.trim();if(!n)return;if(cache.teams.some(t=>t.name.trim().toLowerCase()===n.toLowerCase())){$("#adm-newteam").value="";return;}const id=newId();await commit(s=>{s.teams.push({id,name:n,color:colorFor(s.teams.length)});});};
+    $("#adm-newbtn").addEventListener("click",addTeam);$("#adm-newteam").addEventListener("keydown",e=>{if(e.key==="Enter")addTeam();});
+    const add=$("#adm-add");
+    if(add)add.addEventListener("click",async()=>{const team=$("#adm-team").value,label=$("#adm-act").value,pts=Number($("#adm-pts").value);if(!team||!pts)return;await commit(s=>{s.log.push({team,label,pts,t:Date.now()});});});
+    wrap.querySelectorAll(".adm-team .del").forEach(b=>b.addEventListener("click",async()=>{const id=b.closest(".adm-team").dataset.id;if(!confirm("¿Eliminar este equipo y sus puntos?"))return;await commit(s=>{s.teams=s.teams.filter(t=>t.id!==id);s.log=s.log.filter(e=>e.team!==id);});}));
+    $("#adm-reset").addEventListener("click",async()=>{if(!confirm("¿Reiniciar TODA la competición (equipos y puntos)?"))return;await commit(s=>{s.teams=[];s.log=[];});});
+    $("#adm-exit").addEventListener("click",()=>{store.set("admin",false);renderAdmin();});
+  }
+
+  function renderAll(){renderBadge();renderBoard();renderMyTeam();renderAdmin();lastSig=JSON.stringify(cache);}
+  async function refresh(){await pull();if(JSON.stringify(cache)!==lastSig)renderAll();}
+
+  renderAll();refresh();
+  if(shared)setInterval(()=>{if(!document.hidden)refresh();},5000);
+  return {refresh};
+})();
+window.Comp=Comp;
 </script>
 </body>
 </html>
